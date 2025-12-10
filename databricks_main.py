@@ -3,7 +3,12 @@ import os
 import time
 from rule_engine_integrated import PLBRuleEngine
 
-df = spark.table("megatron.silver.silver_view").limit(5000)
+df = spark.table("megatron.silver.silver_view").limit(2000)
+display(df.limit(5))
+
+from pyspark.sql.functions import lit
+
+df = df.withColumn("batch_id", lit(1))
 display(df.limit(5))
 
 def main():
