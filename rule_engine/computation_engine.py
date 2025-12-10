@@ -209,7 +209,7 @@ class ComputationEngine:
         applicable_tier = self._find_applicable_tier(considered_revenue, contract.tiers)
         
         if not applicable_tier:
-            self.logger.warning(f"No applicable tier found for revenue: {considered_revenue}")
+            self.logger.debug(f"No applicable tier found for revenue: {considered_revenue}")
             return Decimal('0')
         
         # Calculate payout based on tier
@@ -534,7 +534,8 @@ class ComputationEngine:
         has_parameters = bool(re.search(parameter_pattern, formula))
         
         # Check if it's just descriptive text (contains common descriptive words)
-        descriptive_words = ['excluding', 'including', 'revenue', 'flown', 'commissions', 'refunds', 'taxes']
+        descriptive_words = ['excluding', 'including', 'revenue', 'flown', 'commissions', 'refunds', 'taxes', 
+                            'nrf', 'ticketed', 'operated', 'on', 'program', 'incentive']
         is_descriptive = any(word in formula.lower() for word in descriptive_words)
         
         # It's a mathematical formula if it has operators and parameters, and is not just descriptive

@@ -14,7 +14,7 @@ from .models import CouponData, ContractData, ContractAnalysis, ProcessingResult
 from .exceptions import RuleEngineError, ValidationError, ContractError
 from .contract_loader import ContractLoader
 from .rule_loader import RuleLoader
-from .eligibility_checker import EligibilityChecker
+from .eligibility_checker_v2 import EligibilityCheckerV2
 from .computation_engine import ComputationEngine
 from .addon_processor import AddonRuleProcessor
 
@@ -54,19 +54,14 @@ class RuleEngine:
             self.rule_loader = RuleLoader(rules_dir)
         else:
             self.rule_loader = None
-        self.eligibility_checker = EligibilityChecker()
+            
+        # Use V2 eligibility checker
+        self.eligibility_checker = EligibilityCheckerV2()
         self.computation_engine = ComputationEngine()
         self.addon_processor = AddonRuleProcessor()
         
         # Configure logging
         logger.remove()
-        # logger.add(
-        #     "rule_engine.log",
-        #     level=log_level,
-        #     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
-        #     rotation="10 MB",
-        #     retention="30 days"
-        # )
         logger.add(
             lambda msg: print(msg, end=""),
             level=log_level,
@@ -127,88 +122,83 @@ class RuleEngine:
                 airline_eligibility=False
             )
             
-            # Step 3: Filter contracts by airline eligibility first
-            eligible_contracts = []
-            for contract in all_contracts:
-                if self.eligibility_checker.check_airline_eligibility(validated_coupon, contract):
-                    eligible_contracts.append(contract)
-                    logger.debug(f"Contract {contract.contract_id} eligible for airline {validated_coupon.cpn_airline_code}")
-                else:
-                    logger.debug(f"Contract {contract.contract_id} not eligible for airline {validated_coupon.cpn_airline_code}")
-            
-            if not eligible_contracts:
-                logger.info(f"No contracts eligible for airline {validated_coupon.cpn_airline_code}")
-                return ProcessingResult(
-                    coupon_data=validated_coupon,
-                    airline_eligibility=False,
-                    total_contracts_processed=0,
-                    eligible_contracts=0,
-                    contract_analyses={}
-                )
-            
-            logger.info(f"Processing {len(eligible_contracts)} eligible contracts for airline {validated_coupon.cpn_airline_code}")
-            
-            # Step 4: Process each eligible contract
+            # Step 3: Process all contracts with 3-phase eligibility
             contract_analyses = {}
             contract_count = 0
             eligible_count = 0
-            airline_passed_check = True  # Airline passed eligibility check
+            any_sector_eligible = False
             
-            for contract in eligible_contracts:
+            for contract in all_contracts:
                 try:
+                    # STRICT OPTIMIZATION: Check if contract is relevant for this airline
+                    # This prevents processing AFKL rules for QR coupons, etc.
+                    marketing_airlines = contract.trigger_eligibility_criteria.get('IN', {}).get('Marketing Airline', [])
                     
+                    # Also check legacy airline_codes if available
+                    legacy_airlines = getattr(contract, 'airline_codes', [])
+                    if not legacy_airlines and hasattr(contract, 'iata_codes'):
+                         legacy_airlines = contract.iata_codes
+                    
+                    target_airlines = set(marketing_airlines) | set(legacy_airlines)
+                    
+                    if target_airlines:
+                        # If airline restrictions exist, enforce them
+                        # But handle case where coupon might be valid for multiple airlines (rare but possible in data)
+                        if validated_coupon.cpn_airline_code not in target_airlines:
+                            logger.trace(f"Skipping contract {contract.contract_id}: Airline {validated_coupon.cpn_airline_code} not in {target_airlines}")
+                            continue
+
                     contract_count += 1
-                    logger.info(f"Processing contract {contract_count}: {contract.contract_name}")
+                    logger.debug(f"Processing contract {contract_count}: {contract.contract_name}")
                     
                     # Extract formulas and components
                     formulas = self._extract_formulas_and_components(contract)
                     
-                    # Apply trigger formula
-                    trigger_value = self.computation_engine.compute_trigger(validated_coupon, contract)
+                    # --- 3-PHASE ELIGIBILITY CHECK ---
                     
-                    # Apply payout formula
-                    payout_value = self.computation_engine.compute_payout(validated_coupon, contract)
+                    # Phase 1: Sector Eligibility
+                    sector_eligible, sector_reasons = self.eligibility_checker.check_sector_eligibility(
+                        validated_coupon, contract
+                    )
                     
-                    # Check all eligibility criteria using the comprehensive method
-                    eligibility_results = self.eligibility_checker.check_all_eligibility_criteria(validated_coupon, contract)
-                    
-                    # Extract individual eligibility results
-                    date_eligible = eligibility_results['date_eligibility']
-                    geo_eligible = eligibility_results['geographic_eligibility']
-                    booking_eligible = eligibility_results['booking_eligibility']
-                    technical_eligible = eligibility_results['technical_eligibility']
-                    payout_eligible = eligibility_results['payout_eligibility']
-                    
-                    # Determine final eligibility
-                    trigger_eligible = eligibility_results['trigger_eligibility']
-                    
-                    # Build eligibility reasons
+                    trigger_eligible = False
                     trigger_reasons = []
+                    payout_eligible = False
                     payout_reasons = []
                     
-                    if not date_eligible:
-                        trigger_reasons.append("Date not in contract window")
-                        payout_reasons.append("Date not in contract window")
-                    if not geo_eligible:
-                        trigger_reasons.append("Geographic criteria not met")
-                        payout_reasons.append("Geographic criteria not met")
-                    if not booking_eligible:
-                        trigger_reasons.append("Booking criteria not met")
-                        payout_reasons.append("Booking criteria not met")
-                    if not technical_eligible:
-                        trigger_reasons.append("Technical criteria not met")
-                        payout_reasons.append("Technical criteria not met")
-                    if not payout_eligible:
-                        payout_reasons.append("Payout criteria not met")
+                    # Initialize values
+                    trigger_value = Decimal('0')
+                    payout_value = Decimal('0')
                     
+                    if sector_eligible:
+                        any_sector_eligible = True
+                        
+                        # Compute values ONLY if sector is eligible
+                        # Apply trigger formula
+                        trigger_value = self.computation_engine.compute_trigger(validated_coupon, contract)
+                        
+                        # Apply payout formula
+                        payout_value = self.computation_engine.compute_payout(validated_coupon, contract)
+                        
+                        # Phase 2: Trigger Eligibility
+                        trigger_eligible, trigger_reasons = self.eligibility_checker.check_trigger_eligibility(
+                            validated_coupon, contract, sector_eligible
+                        )
+                        
+                        # Phase 3: Payout Eligibility
+                        payout_eligible, payout_reasons = self.eligibility_checker.check_payout_eligibility(
+                            validated_coupon, contract, sector_eligible
+                        )
+                    else:
+                        # If sector failed, subsequent phases are skipped (already handled in V2 but explicit here for clarity)
+                        trigger_reasons = ["Skipped due to sector ineligibility"]
+                        payout_reasons = ["Skipped due to sector ineligibility"]
+
+                    # Update global eligible count (requires full trigger eligibility)
                     if trigger_eligible:
-                        trigger_reasons.append("All trigger criteria met")
                         eligible_count += 1
                     
-                    if payout_eligible:
-                        payout_reasons.append("All payout criteria met")
-                    
-                    # Create initial contract analysis
+                    # Create contract analysis
                     contract_analysis = ContractAnalysis(
                         document_name=contract.document_name,
                         document_id=contract.document_id,
@@ -226,39 +216,40 @@ class RuleEngine:
                         trigger_value=trigger_value,
                         payout_formula=formulas['payout_formula'],
                         payout_value=payout_value,
+                        
+                        # 3-Phase Status
+                        sector_eligibility=sector_eligible,
                         trigger_eligibility=trigger_eligible,
                         payout_eligibility=payout_eligible,
-                        trigger_eligibility_reason="; ".join(trigger_reasons),
-                        payout_eligibility_reason="; ".join(payout_reasons),
+                        
+                        # Reasons
+                        sector_eligibility_reason="; ".join(sector_reasons) if sector_reasons else "Eligible",
+                        trigger_eligibility_reason="; ".join(trigger_reasons) if trigger_reasons else "Eligible",
+                        payout_eligibility_reason="; ".join(payout_reasons) if payout_reasons else "Eligible",
+                        
                         rule_creation_date=contract.creation_date,
                         rule_update_date=contract.update_date
                     )
                     
-                    # Process addon rules if any exist
-                    addon_result = self.addon_processor.process_addon_rules(
-                        validated_coupon, contract, trigger_eligible, payout_eligible, contract_analysis
-                    )
-                    
-                    # Update contract analysis with addon results
-                    if addon_result['addon_applied']:
-                        contract_analysis = self.addon_processor.update_contract_analysis_with_addon(
-                            contract_analysis, addon_result
+                    # Process addon rules if any exist (and primary sector check passed)
+                    if sector_eligible:
+                        addon_result = self.addon_processor.process_addon_rules(
+                            validated_coupon, contract, trigger_eligible, payout_eligible, contract_analysis
                         )
-                        logger.info(f"Addon rules applied to contract {contract.contract_id} - Trigger: {contract_analysis.trigger_eligibility}, Payout: {contract_analysis.payout_eligibility}")
-                    
-                    # Update final eligibility counts based on addon results
-                    if contract_analysis.trigger_eligibility and not trigger_eligible:
-                        eligible_count += 1
-                        logger.info(f"Contract {contract.contract_id} became eligible due to addon rules")
+                        
+                        # Update contract analysis with addon results
+                        if addon_result['addon_applied']:
+                            contract_analysis = self.addon_processor.update_contract_analysis_with_addon(
+                                contract_analysis, addon_result
+                            )
+                            logger.info(f"Addon rules applied to contract {contract.contract_id}")
                     
                     contract_analyses[f'Contract_{contract_count}'] = contract_analysis
-                    
-                    logger.info(f"Contract {contract_count} processed - Trigger: {contract_analysis.trigger_eligibility}, Payout: {contract_analysis.payout_eligibility}")
                     
                 except Exception as e:
                     logger.error(f"Error processing contract {contract.contract_id}: {str(e)}")
                     
-                    # Create a failed contract analysis instead of skipping
+                    # Create a failed contract analysis
                     failed_contract_analysis = ContractAnalysis(
                         document_name=contract.document_name,
                         document_id=contract.document_id,
@@ -275,8 +266,10 @@ class RuleEngine:
                         trigger_value=Decimal('0'),
                         payout_formula="Error in processing",
                         payout_value=Decimal('0'),
+                        sector_eligibility=False,
                         trigger_eligibility=False,
                         payout_eligibility=False,
+                        sector_eligibility_reason=f"Processing error: {str(e)}",
                         trigger_eligibility_reason=f"Processing error: {str(e)}",
                         payout_eligibility_reason=f"Processing error: {str(e)}",
                         rule_creation_date=contract.creation_date,
@@ -284,11 +277,43 @@ class RuleEngine:
                     )
                     
                     contract_analyses[f'Contract_{contract_count}'] = failed_contract_analysis
-                    logger.info(f"Contract {contract_count} failed - Error: {str(e)}")
                     continue
             
-            # Update result - airline is eligible if it passed airline eligibility check for any contract
-            result.airline_eligibility = airline_passed_check
+            # [NEW] Handle case where no contracts matched the airline
+            if not contract_analyses:
+                 logger.debug(f"No matching contracts found for airline {validated_coupon.cpn_airline_code}")
+                 
+                 no_contract_analysis = ContractAnalysis(
+                    document_name="N/A",
+                    document_id="N/A",
+                    contract_name="No Contract Found",
+                    contract_id="NO_CONTRACT",
+                    rule_id="N/A",
+                    ruleset_id="N/A",
+                    source_name="N/A",
+                    contract_window_date={"start": date.min, "end": date.max},
+                    trigger_formula="N/A",
+                    trigger_value=Decimal('0'),
+                    payout_formula="N/A",
+                    payout_value=Decimal('0'),
+                    
+                    # 3-Phase Status - All False
+                    sector_eligibility=False,
+                    trigger_eligibility=False,
+                    payout_eligibility=False,
+                    
+                    # Reasons
+                    sector_eligibility_reason="Contract not available",
+                    trigger_eligibility_reason="Contract not available",
+                    payout_eligibility_reason="Contract not available",
+                    
+                    rule_creation_date=date.today(),
+                    rule_update_date=date.today()
+                 )
+                 contract_analyses['No_Contract'] = no_contract_analysis
+                 
+            # Update result
+            result.airline_eligibility = any_sector_eligible  # Best approximation for V1 compatibility
             result.contract_analyses = contract_analyses
             result.total_contracts_processed = contract_count
             result.eligible_contracts = eligible_count

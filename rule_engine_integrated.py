@@ -1011,6 +1011,9 @@ class PLBRuleEngine:
                             
                             'Trigger_Formula': analysis.trigger_formula,
                             'Trigger_Value': float(analysis.trigger_value) if analysis.trigger_value is not None else 0.0,
+                            'Sector_Eligibility': analysis.sector_eligibility, # Alias for backward compatibility
+                            'Sector_Eligibility_Reason': analysis.sector_eligibility_reason,
+                            'Sector_Airline_Eligibility': analysis.sector_eligibility, # Restored column
                             'Trigger_Eligibility': analysis.trigger_eligibility,
                             'Trigger_Eligibility_Reason': analysis.trigger_eligibility_reason,
                             
@@ -1040,6 +1043,9 @@ class PLBRuleEngine:
                         'Contract_Status': None,
                         'Trigger_Formula': None,
                         'Trigger_Value': None,
+                        'Sector_Eligibility': None,
+                        'Sector_Eligibility_Reason': None,
+                        'Sector_Airline_Eligibility': None, # Empty for non-matched
                         'Trigger_Eligibility': None,
                         'Trigger_Eligibility_Reason': None,
                         'Payout_Eligibility': None,
@@ -1063,11 +1069,13 @@ class PLBRuleEngine:
         
         # Ensure all requested output columns are present even if empty
         expected_columns = [
-            'Sector_Airline_Eligibility', 'processed_time', 'Contract_Document_Name', 
+            'Sector_Airline_Eligibility', 'Sector_Eligibility_Reason', 'processed_time', 'Contract_Document_Name', 
             'Contract_Document_ID', 'Contract_Name', 'Contract_ID', 
             'Contract_Document_Start_Date', 'Contract_Document_Window_End', 
             'Contract_Rule_Creation_Date', 'Contract_Rule_Update_Date', 'Contract_Status',
-            'Trigger_Formula', 'Trigger_Value', 'Trigger_Eligibility', 'Trigger_Eligibility_Reason',
+            'Trigger_Formula', 'Trigger_Value', 
+            'Sector_Eligibility', # Restored as requested
+            'Trigger_Eligibility', 'Trigger_Eligibility_Reason',
             'Payout_Eligibility', 'Payout_Formula', 'Payout_Eligibility_Reason',
             'Processing_error'
         ]
@@ -1113,6 +1121,10 @@ class PLBRuleEngine:
             tier_data[f'Tier{i}_percent'] = None
             tier_data[f'tier{i}_payout'] = None
             
+        # CRITICAL FIX: If sector is not eligible, all payouts must be 0 or None
+        if not getattr(analysis, 'sector_eligibility', False):
+            return tier_data
+
         try:
             base_revenue = float(coupon.cpn_revenue_base) if coupon.cpn_revenue_base else 0.0
             

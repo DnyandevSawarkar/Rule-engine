@@ -1,0 +1,676 @@
+{
+    "version": "1.0.0",
+    "description": "Central mapping configuration for all rule fields in the rule engine",
+    "mappings": [
+        {
+            "ruleField": "origin",
+            "inputPath": "cpn_origin",
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Origin airport/city code",
+            "examples": [
+                "CAI",
+                "DOH",
+                "LHR"
+            ]
+        },
+        {
+            "ruleField": "destination",
+            "inputPath": "cpn_destination",
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Destination airport/city code",
+            "examples": [
+                "DOH",
+                "LHR",
+                "JFK"
+            ]
+        },
+        {
+            "ruleField": "route",
+            "inputPath": "ticket_itinerary",
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper",
+                "generateODPairs"
+            ],
+            "allowArrayOrScalar": true,
+            "skipIfMissing": true,
+            "description": "Route matching: Parses ticket_itinerary/coupon_itinerary into O&D pairs (e.g. A-B-C -> A-B, B-C) and matches ANY pair.",
+            "examples": [
+                "DOH-HND",
+                "CAI-DOH",
+                "LHR-JFK"
+            ],
+            "alternativePaths": [
+                "coupon_itinerary"
+            ],
+            "enableAlternativePaths": true
+        },
+        {
+            "ruleField": "ond",
+            "inputPath": [
+                "ticket_origin",
+                "ticket_destination"
+            ],
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": true,
+            "skipIfMissing": true,
+            "description": "Origin and Destination (ticket level, not coupon level). Can be ignored via ignoreCriteria flag.",
+            "examples": [
+                "CAI-SYD",
+                "DOH-LHR"
+            ],
+            "compositeFormat": "{0}-{1}",
+            "ignoreCriteria": true
+        },
+        {
+            "ruleField": "pos",
+            "inputPath": "pcc",
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Point of Sale (country code)",
+            "examples": [
+                "EG",
+                "US",
+                "GB"
+            ],
+            "alternativePaths": [
+                "pos_array"
+            ]
+        },
+        {
+            "ruleField": "poo",
+            "inputPath": "ticket_origin",
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Point of Origin",
+            "examples": [
+                "CAI",
+                "DOH"
+            ]
+        },
+        {
+            "ruleField": "cityCode",
+            "inputPath": "city_codes",
+            "criteriaGroup": "geographic",
+            "dataType": "array<string>",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": true,
+            "skipIfMissing": true,
+            "description": "City codes",
+            "examples": [
+                "CAI",
+                "DOH",
+                "LHR"
+            ]
+        },
+        {
+            "ruleField": "country",
+            "inputPath": "country",
+            "criteriaGroup": "geographic",
+            "dataType": "array<string>",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": true,
+            "skipIfMissing": true,
+            "description": "Country codes",
+            "examples": [
+                "EG",
+                "QA",
+                "GB"
+            ]
+        },
+        {
+            "ruleField": "iataCode",
+            "inputPath": "iata",
+            "criteriaGroup": "geographic",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "first7"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "IATA agency code",
+            "examples": [
+                "9022273",
+                "12345678"
+            ]
+        },
+        {
+            "ruleField": "bookingDate",
+            "inputPath": "cpn_sales_date",
+            "criteriaGroup": "booking",
+            "dataType": "date",
+            "nullHandling": "strict_fail",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": false,
+            "description": "Sales/booking date",
+            "examples": [
+                "2025-04-15",
+                "2025-07-20"
+            ]
+        },
+        {
+            "ruleField": "ticketingDate",
+            "inputPath": "cpn_sales_date",
+            "criteriaGroup": "ticketing",
+            "dataType": "date",
+            "nullHandling": "strict_fail",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": false,
+            "description": "Ticketing/issue date",
+            "examples": [
+                "2025-04-15",
+                "2025-07-20"
+            ]
+        },
+        {
+            "ruleField": "travelDate",
+            "inputPath": "cpn_flown_date",
+            "criteriaGroup": "booking",
+            "dataType": "date",
+            "nullHandling": "strict_fail",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": false,
+            "description": "Travel/flown date",
+            "examples": [
+                "2025-05-01",
+                "2025-08-15"
+            ]
+        },
+        {
+            "ruleField": "rbd",
+            "inputPath": "cpn_RBD",
+            "criteriaGroup": "booking",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Reservation Booking Designator (booking class)",
+            "examples": [
+                "Y",
+                "J",
+                "F",
+                "B"
+            ]
+        },
+        {
+            "ruleField": "cabin",
+            "inputPath": "cabin",
+            "criteriaGroup": "booking",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Cabin class",
+            "examples": [
+                "Economy",
+                "Business",
+                "First"
+            ]
+        },
+        {
+            "ruleField": "fareType",
+            "inputPath": "fare_type",
+            "criteriaGroup": "booking",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Fare type classification",
+            "examples": [
+                "Ad-hoc Fares (Iprice)",
+                "GDS - Public fare",
+                "Corporate Global"
+            ]
+        },
+        {
+            "ruleField": "fareBasis",
+            "inputPath": "cpn_fare_basis",
+            "criteriaGroup": "booking",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Fare basis code",
+            "examples": [
+                "YLOWBR",
+                "JFLX"
+            ]
+        },
+        {
+            "ruleField": "corporateCode",
+            "inputPath": "corporate_code",
+            "criteriaGroup": "booking",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Corporate account code",
+            "examples": [
+                "CORP123",
+                "ABC456"
+            ]
+        },
+        {
+            "ruleField": "tourCode",
+            "inputPath": "tour_codes",
+            "criteriaGroup": "booking",
+            "dataType": "array<string>",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": true,
+            "skipIfMissing": true,
+            "description": "Tour codes",
+            "examples": [
+                "TOUR123",
+                "PKG456"
+            ]
+        },
+        {
+            "ruleField": "marketingAirline",
+            "inputPath": "marketing_airline",
+            "criteriaGroup": "airline_flight",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "fallbackPath": "cpn_airline_code",
+            "description": "Marketing airline code",
+            "examples": [
+                "QR",
+                "EK",
+                "AF"
+            ]
+        },
+        {
+            "ruleField": "operatingAirline",
+            "inputPath": "operating_airline",
+            "criteriaGroup": "airline_flight",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "fallbackPath": "cpn_airline_code",
+            "description": "Operating airline code",
+            "examples": [
+                "QR",
+                "JL",
+                "AY",
+                "GA",
+                "VA"
+            ]
+        },
+        {
+            "ruleField": "ticketingAirline",
+            "inputPath": "ticketing_airline",
+            "criteriaGroup": "airline_flight",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "fallbackPath": "cpn_airline_code",
+            "description": "Ticketing airline code",
+            "examples": [
+                "QR",
+                "EK",
+                "AF"
+            ]
+        },
+        {
+            "ruleField": "flightNumber",
+            "inputPath": "flight_numbers",
+            "criteriaGroup": "airline_flight",
+            "dataType": "array<string>",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper",
+                "stripAirlinePrefix"
+            ],
+            "allowArrayOrScalar": true,
+            "skipIfMissing": true,
+            "description": "Flight numbers (can include or exclude airline prefix). Example: Rule has 'QR1234', input can be '1234' or 'QR1234'",
+            "examples": [
+                "QR1234",
+                "1234",
+                "QR4850",
+                "4850"
+            ]
+        },
+        {
+            "ruleField": "ndc",
+            "inputPath": "ndc",
+            "criteriaGroup": "technical",
+            "dataType": "boolean",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "NDC (New Distribution Capability) indicator",
+            "examples": [
+                true,
+                false
+            ]
+        },
+        {
+            "ruleField": "codeShare",
+            "inputPath": "code_share",
+            "criteriaGroup": "technical",
+            "dataType": "boolean",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Code share indicator",
+            "examples": [
+                true,
+                false
+            ]
+        },
+        {
+            "ruleField": "interline",
+            "inputPath": "interline",
+            "criteriaGroup": "technical",
+            "dataType": "boolean",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Interline indicator",
+            "examples": [
+                true,
+                false
+            ]
+        },
+        {
+            "ruleField": "domIntl",
+            "inputPath": "cpn_is_international",
+            "criteriaGroup": "booking",
+            "dataType": "boolean",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Domestic/International indicator",
+            "examples": [
+                true,
+                false
+            ]
+        },
+        {
+            "ruleField": "sitiSotoSitoSoti",
+            "inputPath": "siti_soto_sito_soti",
+            "criteriaGroup": "technical",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "SITI/SOTO/SITO/SOTI classification",
+            "examples": [
+                "SOTO (allowed)",
+                "SITI",
+                "SOTO (excluded at payout)"
+            ]
+        },
+        {
+            "ruleField": "alliance",
+            "inputPath": "alliance",
+            "criteriaGroup": "technical",
+            "dataType": "string",
+            "nullHandling": "skip_and_allow",
+            "arrayMatchMode": "any",
+            "normalize": [
+                "trim",
+                "upper"
+            ],
+            "allowArrayOrScalar": false,
+            "skipIfMissing": true,
+            "description": "Airline alliance",
+            "examples": [
+                "ONEWORLD",
+                "STAR_ALLIANCE",
+                "SKYTEAM"
+            ]
+        }
+    ],
+    "normalizationFunctions": {
+        "trim": {
+            "description": "Remove leading and trailing whitespace",
+            "applies_to": [
+                "string",
+                "array<string>"
+            ]
+        },
+        "upper": {
+            "description": "Convert to uppercase",
+            "applies_to": [
+                "string",
+                "array<string>"
+            ]
+        },
+        "lower": {
+            "description": "Convert to lowercase",
+            "applies_to": [
+                "string",
+                "array<string>"
+            ]
+        },
+        "stripAirlinePrefix": {
+            "description": "Remove airline prefix from flight numbers. E.g., 'QR1234' -> '1234'. Supports comparison where rule has 'QR1234' and input has '1234' or vice versa.",
+            "applies_to": [
+                "string",
+                "array<string>"
+            ],
+            "pattern": "^[A-Z]{2}(\\d+)$"
+        },
+        "trimLeadingZeros": {
+            "description": "Remove leading zeros from numeric strings",
+            "applies_to": [
+                "string",
+                "array<string>"
+            ]
+        },
+        "removeSpaces": {
+            "description": "Remove all spaces from string",
+            "applies_to": [
+                "string",
+                "array<string>"
+            ]
+        },
+        "first7": {
+            "description": "Truncate string to first 7 characters",
+            "applies_to": [
+                "string"
+            ]
+        },
+        "generateODPairs": {
+            "description": "Split itinerary string (e.g. 'A-B-C') into adjacent O&D pairs (e.g. ['A-B', 'B-C'])",
+            "applies_to": [
+                "string"
+            ]
+        }
+    },
+    "criteriaGroups": {
+        "geographic": {
+            "description": "Geographic criteria determining sector/coupon eligibility based on location",
+            "fields": [
+                "origin",
+                "destination",
+                "route",
+                "ond",
+                "pos",
+                "poo",
+                "cityCode",
+                "country",
+                "iataCode"
+            ],
+            "evaluation_phase": "sector_eligibility"
+        },
+        "booking": {
+            "description": "Booking-related criteria including fare details and booking class",
+            "fields": [
+                "bookingDate",
+                "travelDate",
+                "rbd",
+                "cabin",
+                "fareType",
+                "fareBasis",
+                "corporateCode",
+                "tourCode",
+                "domIntl"
+            ],
+            "evaluation_phase": "sector_eligibility"
+        },
+        "ticketing": {
+            "description": "Ticketing date and issue-related criteria",
+            "fields": [
+                "ticketingDate"
+            ],
+            "evaluation_phase": "sector_eligibility"
+        },
+        "airline_flight": {
+            "description": "Airline and flight identification criteria",
+            "fields": [
+                "marketingAirline",
+                "operatingAirline",
+                "ticketingAirline",
+                "flightNumber"
+            ],
+            "evaluation_phase": "sector_eligibility"
+        },
+        "technical": {
+            "description": "Technical criteria for distribution channel and ticket characteristics",
+            "fields": [
+                "ndc",
+                "codeShare",
+                "interline",
+                "sitiSotoSitoSoti",
+                "alliance"
+            ],
+            "evaluation_phase": "trigger_eligibility",
+            "note": "These can have different values for trigger vs payout"
+        },
+        "payout": {
+            "description": "Payout-specific criteria (separate from trigger)",
+            "fields": [],
+            "evaluation_phase": "payout_eligibility",
+            "note": "Payout criteria can overlap with trigger criteria but have different IN/OUT values"
+        }
+    }
+}

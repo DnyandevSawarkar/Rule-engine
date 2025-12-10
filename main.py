@@ -5,7 +5,7 @@ import time
 from rule_engine_integrated import PLBRuleEngine
 
 def main():
-    input_file = "test_data.csv"
+    input_file = "10K_prod_input.csv"
     output_file = "processed_output.csv"
     
     # Check if input file exists
@@ -32,15 +32,15 @@ def main():
 
     # Process DataFrame
     print("Processing DataFrame...")
-    # try:
-    #     processing_start = time.time()
-    #     result_df = engine.process_dataframe(df)
-    #     processing_time = time.time() - processing_start
-    #     print(f"Processing complete in {processing_time:.2f} seconds.")
-    #     print(f"Output contains {len(result_df)} rows.")
-    # except Exception as e:
-    #     print(f"Error during processing: {e}")
-    #     return
+    try:
+        processing_start = time.time()
+        result_df = engine.process_dataframe(df)
+        processing_time = time.time() - processing_start
+        print(f"Processing complete in {processing_time:.2f} seconds.")
+        print(f"Output contains {len(result_df)} rows.")
+    except Exception as e:
+        print(f"Error during processing: {e}")
+        return
 
     # Save Output
     print(f"Saving output to {output_file}...")

@@ -51,6 +51,10 @@ class CouponData(BaseModel):
     city_codes: Optional[str] = ""
     route: Optional[str] = ""
     
+    # Itinerary strings (for enhanced route matching)
+    coupon_itinerary: Optional[str] = ""
+    ticket_itinerary: Optional[str] = ""
+    
     # Technical flags
     code_share: Optional[str] = ""
     interline: Optional[str] = ""
@@ -58,6 +62,36 @@ class CouponData(BaseModel):
     tour_codes: Optional[str] = ""
     fare_type: Optional[str] = ""
     cpn_is_international: Optional[bool] = False
+    
+    # New Array fields for enhanced matching
+    ticket_origin: Optional[str] = ""
+    ticket_destination: Optional[str] = ""
+    ond_array: List[str] = Field(default_factory=list)
+    pos_array: List[str] = Field(default_factory=list)
+    
+    @validator('ond_array', 'pos_array', pre=True)
+    def parse_array_fields(cls, v):
+        """Parse string representation of list to actual list"""
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            try:
+                # Try JSON parsing first (e.g. '["A", "B"]')
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(i) for i in parsed]
+                return [v]
+            except json.JSONDecodeError:
+                # Fallback: Treat as comma-separated or single value
+                if ',' in v and '[' not in v:
+                    return [i.strip() for i in v.split(',')]
+                return [v]
+        return [str(v)]
     
     @validator('ticket_number', 'flight_number', pre=True)
     def convert_to_string(cls, v):
@@ -143,7 +177,7 @@ class CouponData(BaseModel):
     
     @validator('iata', 'marketing_airline', 'ticketing_airline', 'corporate_code', 
               'operating_airline', 'city_codes', 'route', 'code_share', 'interline', 
-              'ndc', 'tour_codes', 'fare_type', pre=True)
+              'ndc', 'tour_codes', 'fare_type', 'coupon_itinerary', 'ticket_itinerary', pre=True)
     def handle_empty_strings(cls, v):
         if v is None or v == "" or (isinstance(v, float) and pd.isna(v)):
             return ""
@@ -182,10 +216,12 @@ class ContractAnalysis(BaseModel):
     payout_value: Decimal
     
     # Eligibility status
+    sector_eligibility: bool = False
     trigger_eligibility: bool
     payout_eligibility: bool
     
     # Eligibility reasons
+    sector_eligibility_reason: str = ""
     trigger_eligibility_reason: str = ""
     payout_eligibility_reason: str = ""
     
