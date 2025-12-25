@@ -1094,7 +1094,7 @@ class PLBRuleEngine:
                             'Contract_Rule_Update_Date': analysis.rule_update_date,
                             'Contract_Status': "Active",
                             # Contract_Currency: from metadata, default to USD if not present, null if not eligible
-                            'Contract_Currency': (getattr(analysis, 'currency', None) or 'USD') if analysis.sector_eligibility else None,
+                            'Contract_Currency': (getattr(analysis, 'currency', None) or 'USD') if analysis.sector_eligibility else "",
                             
                             'Trigger_Formula': analysis.trigger_formula,
                             'Trigger_Value': float(analysis.trigger_value) if analysis.trigger_value is not None else 0.0,
@@ -1128,7 +1128,7 @@ class PLBRuleEngine:
                         'Contract_Rule_Creation_Date': None,
                         'Contract_Rule_Update_Date': None,
                         'Contract_Status': None,
-                        'Contract_Currency': None,  # No currency when no rules apply
+                        'Contract_Currency': "",  # No currency when no rules apply
                         'Trigger_Formula': None,
                         'Trigger_Value': None,
                         'Sector_Eligibility': None,
