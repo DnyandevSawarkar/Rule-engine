@@ -54,6 +54,9 @@ class RuleEngine:
             self.rule_loader = RuleLoader(rules_dir)
         else:
             self.rule_loader = None
+        
+        # Cache for loaded contracts to prevent re-loading on every coupon
+        self._contracts_cache = None
             
         # Use V2 eligibility checker
         self.eligibility_checker = EligibilityCheckerV2()
@@ -72,7 +75,29 @@ class RuleEngine:
             logger.info(f"Rule Engine initialized with contracts directory: {self.contracts_dir}")
         else:
             logger.info(f"Rule Engine initialized with rules directory only: {self.rules_dir}")
+        
+        # Preload contracts once at initialization
+        self._load_contracts_cache()
     
+    def _load_contracts_cache(self):
+        """Load and cache all contracts once for performance"""
+        if self._contracts_cache is not None:
+            return  # Already cached
+            
+        try:
+            if self.rule_loader:
+                self._contracts_cache = self.rule_loader.load_all_rules()
+                logger.info(f"Cached {len(self._contracts_cache)} contracts from rules")
+            elif self.contract_loader:
+                self._contracts_cache = self.contract_loader.load_all_contracts()
+                logger.info(f"Cached {len(self._contracts_cache)} contracts")
+            else:
+                self._contracts_cache = []
+        except Exception as e:
+            logger.error(f"Error loading contracts cache: {e}")
+            self._contracts_cache = []
+
+
     def process_single_coupon(self, coupon_data: CouponData) -> ProcessingResult:
         """
         Process a single coupon against all available contracts
@@ -90,31 +115,17 @@ class RuleEngine:
             # Step 1: Validate coupon input
             validated_coupon = self._validate_coupon_input(coupon_data)
             
-            # Step 2: Find all available contracts (try rules first, then contracts)
-            all_contracts = []
-            if self.rule_loader:
-                try:
-                    all_contracts = self.rule_loader.load_all_rules()
-                    logger.info(f"Found {len(all_contracts)} total rules")
-                except Exception as e:
-                    logger.warning(f"Failed to load rules: {e}, trying contracts")
-                    if self.contract_loader:
-                        try:
-                            all_contracts = self.contract_loader.load_all_contracts()
-                            logger.info(f"Found {len(all_contracts)} total contracts")
-                        except Exception as e2:
-                            logger.error(f"Failed to load contracts: {e2}")
-                            raise
-            elif self.contract_loader:
-                try:
-                    all_contracts = self.contract_loader.load_all_contracts()
-                    logger.info(f"Found {len(all_contracts)} total contracts")
-                except Exception as e:
-                    logger.error(f"Failed to load contracts: {e}")
-                    raise
-            else:
-                logger.error("No contract or rule loader available")
-                raise RuleEngineError("No contract or rule loader available")
+            # Step 2: Use cached contracts (already loaded at initialization)
+            # This prevents re-loading contracts for every coupon which causes row duplication
+            if self._contracts_cache is None:
+                self._load_contracts_cache()
+            
+            all_contracts = self._contracts_cache
+            if not all_contracts:
+                logger.warning("No contracts available in cache")
+                raise RuleEngineError("No contracts available")
+            
+            logger.debug(f"Using {len(all_contracts)} cached contracts")
             
             # Initialize output
             result = ProcessingResult(
@@ -208,7 +219,7 @@ class RuleEngine:
                         # New fields for dynamic rule loading
                         ruleset_id=getattr(contract, 'ruleset_id', contract.document_name),
                         source_name=getattr(contract, 'source_name', contract.document_id),
-                        currency=getattr(contract, 'currency', 'USD'),
+                        currency=getattr(contract, 'currency', 'USD'),  # Currency from contract
                         contract_window_date={
                             "start": contract.start_date,
                             "end": contract.end_date
@@ -259,6 +270,7 @@ class RuleEngine:
                         rule_id=contract.rule_id,
                         ruleset_id=getattr(contract, 'ruleset_id', contract.document_name),
                         source_name=getattr(contract, 'source_name', contract.document_id),
+                        currency=getattr(contract, 'currency', 'USD'),  # Currency from contract
                         contract_window_date={
                             "start": contract.start_date,
                             "end": contract.end_date
@@ -292,6 +304,7 @@ class RuleEngine:
                     rule_id="N/A",
                     ruleset_id="N/A",
                     source_name="N/A",
+                    currency=None,  # No currency when no contract
                     contract_window_date={"start": date.min, "end": date.max},
                     trigger_formula="N/A",
                     trigger_value=Decimal('0'),

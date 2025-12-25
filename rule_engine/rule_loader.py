@@ -40,9 +40,15 @@ class RuleLoader:
         rules/airline/year/month/*.json
         
         Returns:
-            List of ContractData objects
+            List of ContractData objects (deduplicated by contract_id)
         """
+        # Return cached contracts if available
+        if self._rules_cache:
+            logger.debug(f"Returning {len(self._rules_cache)} cached contracts")
+            return list(self._rules_cache.values())
+        
         contracts = []
+        seen_contract_ids = set()
         
         try:
             # Scan for JSON files in the new nested structure
@@ -52,21 +58,18 @@ class RuleLoader:
             for json_file in json_files:
                 try:
                     file_contracts = self._load_rule_file(json_file)
-                    contracts.extend(file_contracts)
+                    for contract in file_contracts:
+                        # Deduplicate by contract_id to prevent row explosion
+                        if contract.contract_id not in seen_contract_ids:
+                            contracts.append(contract)
+                            seen_contract_ids.add(contract.contract_id)
+                            self._rules_cache[contract.contract_id] = contract
+                        else:
+                            logger.debug(f"Skipping duplicate contract: {contract.contract_id}")
                     logger.debug(f"Loaded {len(file_contracts)} contracts from {json_file.name}")
                 except Exception as e:
                     logger.error(f"Failed to load contract from {json_file}: {str(e)}")
                     continue
-            
-            # Deduplicate contracts by contract_id
-            unique_contracts = {}
-            for contract in contracts:
-                if contract.contract_id not in unique_contracts:
-                    unique_contracts[contract.contract_id] = contract
-                else:
-                    logger.warning(f"Duplicate contract ID found and skipped: {contract.contract_id} (Rule: {contract.contract_name})")
-            
-            contracts = list(unique_contracts.values())
             
             logger.info(f"Successfully loaded {len(contracts)} unique contracts from rules directory")
             return contracts
@@ -74,6 +77,7 @@ class RuleLoader:
         except Exception as e:
             logger.error(f"Error loading contracts: {str(e)}")
             raise ContractError(f"Failed to load contracts: {str(e)}")
+
     
     def load_rules_for_airline(self, airline_code: str) -> List[ContractData]:
         """
@@ -251,9 +255,7 @@ class RuleLoader:
             document_name = doc_header.get('Name', filename)
             start_date = datetime.strptime(doc_header.get('Start Date', '2025-01-01'), '%Y-%m-%d').date()
             end_date = datetime.strptime(doc_header.get('End Date', '2025-12-31'), '%Y-%m-%d').date()
-            # Zen: Handle currency as string even if list provided
-            currency_raw = doc_header.get('Currency', 'NONE')
-            currency = str(currency_raw[0]) if isinstance(currency_raw, list) and currency_raw else str(currency_raw)
+            currency = doc_header.get('Currency', 'NONE')
             location = doc_header.get('Location', 'Unknown')
             iata_codes = doc_header.get('IATA', [])
             countries = doc_header.get('Countries', [])
@@ -369,7 +371,6 @@ class RuleLoader:
                 # New fields for output mapping
                 ruleset_id=filename.replace('.json', ''),
                 source_name=document_name,
-                currency=currency,
                 start_date=start_date,
                 end_date=end_date,
                 trigger_type=trigger_type,
@@ -448,6 +449,14 @@ class RuleLoader:
             metadata = data.get('metadata', {})
             metadata['ruleset_id'] = data.get('ruleset_id', filename.replace('.json', ''))
             contract_window = metadata.get('contract_window', {})
+            
+            # Extract currency from metadata (can be string or array)
+            currency_val = metadata.get('currency', 'USD')
+            if isinstance(currency_val, list):
+                currency = currency_val[0] if currency_val else 'USD'
+            else:
+                currency = currency_val if currency_val else 'USD'
+            metadata['currency'] = currency
             
             # Parse dates
             start_date = self._parse_date(contract_window.get('start_date', '2025-01-01'))
@@ -559,8 +568,7 @@ class RuleLoader:
                 # New fields for output mapping
                 ruleset_id=metadata.get('ruleset_id', filename.replace('.json', '')),
                 source_name=metadata.get('source_name', filename),
-                # Zen: Handle currency as string even if list provided in metadata
-                currency=str(metadata.get('currency', ['USD'])[0]) if isinstance(metadata.get('currency'), list) and metadata.get('currency') else str(metadata.get('currency', 'USD')),
+                currency=metadata.get('currency', 'USD'),  # Currency from metadata
                 start_date=start_date,
                 end_date=end_date,
                 trigger_type=trigger_type,

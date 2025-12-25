@@ -323,6 +323,83 @@ class PLBRuleEngine:
                 "fetched_at": datetime.now().isoformat()
             }
     
+    def _preprocess_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Preprocess DataFrame for compatibility with both Databricks and CSV sources.
+        
+        IMPORTANT: This function PRESERVES original data types and null values.
+        It only handles:
+        - Numpy array values in cells (extracts first element)
+        - Ensures columns exist for processing
+        
+        Input null values (NaN, None, NA) are kept as-is and will be preserved in output.
+        
+        Args:
+            df: Input DataFrame from Databricks or CSV
+            
+        Returns:
+            Preprocessed DataFrame with original types and nulls preserved
+        """
+        df = df.copy()  # Don't modify original
+        
+        # Only handle numpy arrays in cells - this is common from Databricks
+        # but preserve the actual null values and data types
+        for col in df.columns:
+            try:
+                # Check if any cell contains numpy array (common from Databricks)
+                has_arrays = df[col].apply(lambda x: hasattr(x, 'tolist') or isinstance(x, (list, tuple))).any()
+                
+                if has_arrays:
+                    df[col] = df[col].apply(lambda x: self._extract_scalar_preserve_type(x))
+            except Exception:
+                pass  # Keep column as-is if any error
+        
+        return df
+    
+    def _extract_scalar_preserve_type(self, value):
+        """
+        Extract scalar value from arrays/lists while preserving null values and types.
+        
+        - None/NaN/NA -> kept as None
+        - numpy arrays -> first element (preserving type)
+        - lists/tuples -> first element (preserving type)
+        - All other types -> returned as-is (no conversion)
+        """
+        import numpy as np
+        
+        # Preserve None as-is
+        if value is None:
+            return None
+        
+        # Preserve NaN as-is
+        try:
+            if pd.isna(value):
+                return value  # Return the original NaN, not None
+        except (ValueError, TypeError):
+            pass  # Some types can't be checked with pd.isna
+        
+        # Handle numpy arrays - extract first element
+        if hasattr(value, 'tolist'):
+            try:
+                arr = value.tolist() if hasattr(value, 'tolist') else value
+                if isinstance(arr, list):
+                    if len(arr) == 0:
+                        return None
+                    return self._extract_scalar_preserve_type(arr[0])
+                return arr  # 0-d array becomes scalar
+            except Exception:
+                return value
+        
+        # Handle lists/tuples - extract first element
+        if isinstance(value, (list, tuple)):
+            if len(value) == 0:
+                return None
+            return self._extract_scalar_preserve_type(value[0])
+        
+        # Return value as-is - no type conversion
+        return value
+
+
     def _row_to_coupon_data(self, row: pd.Series) -> CouponData:
         """Convert pandas row to CouponData object with robust error handling"""
         coupon_dict = row.to_dict()
@@ -330,8 +407,7 @@ class PLBRuleEngine:
         # Enhanced null and data type handling
         for key, value in coupon_dict.items():
             try:
-                # Handle 'NO DATA' specifically or empty strings
-                if pd.isna(value) or value is None or (isinstance(value, str) and value.strip() in ["", "NO DATA"]):
+                if pd.isna(value) or value is None or (isinstance(value, str) and value.strip() == ""):
                     if key in ['cabin', 'airline_name', 'marketing_airline', 'ticketing_airline', 'operating_airline']:
                         coupon_dict[key] = "Unknown"
                     elif key in ['cpn_revenue_base', 'cpn_revenue_yq', 'cpn_revenue_yr', 'cpn_revenue_xt', 'cpn_total_revenue', 'flight_number', 'iata']:
@@ -959,6 +1035,9 @@ class PLBRuleEngine:
         """
         print(f"Processing DataFrame with {len(df)} rows")
         
+        # Preprocess DataFrame to normalize data types from different sources (Databricks/CSV)
+        df = self._preprocess_dataframe(df)
+        
         results = []
         
         def get_ist_time():
@@ -980,8 +1059,8 @@ class PLBRuleEngine:
                 # Convert row to CouponData
                 coupon = self._row_to_coupon_data(row)
                 
-                # Process coupon - Zen: Use cached rules for performance
-                result = self._process_single_coupon_with_cached_rules(coupon)
+                # Process coupon
+                result = self.engine.process_single_coupon(coupon)
                 
                 # Base row data from input
                 # Convert input row to dict to preserve all original columns
@@ -1009,12 +1088,13 @@ class PLBRuleEngine:
                             'Contract_Document_ID': analysis.document_id,
                             'Contract_Name': analysis.contract_name,
                             'Contract_ID': analysis.contract_id,
-                            'Contract_Currency': getattr(analysis, 'currency', 'USD'),
                             'Contract_Document_Start_Date': analysis.contract_window_date.start,
                             'Contract_Document_Window_End': analysis.contract_window_date.end,
                             'Contract_Rule_Creation_Date': analysis.rule_creation_date,
                             'Contract_Rule_Update_Date': analysis.rule_update_date,
                             'Contract_Status': "Active",
+                            # Contract_Currency: from metadata, default to USD if not present, null if not eligible
+                            'Contract_Currency': (getattr(analysis, 'currency', None) or 'USD') if analysis.sector_eligibility else None,
                             
                             'Trigger_Formula': analysis.trigger_formula,
                             'Trigger_Value': float(analysis.trigger_value) if analysis.trigger_value is not None else 0.0,
@@ -1039,17 +1119,16 @@ class PLBRuleEngine:
                     output_row = base_row_data.copy()
                     
                     output_row.update({
-
                         'Contract_Document_Name': None,
                         'Contract_Document_ID': None,
                         'Contract_Name': None,
                         'Contract_ID': None,
-                        'Contract_Currency': None,
                         'Contract_Document_Start_Date': None,
                         'Contract_Document_Window_End': None,
                         'Contract_Rule_Creation_Date': None,
                         'Contract_Rule_Update_Date': None,
                         'Contract_Status': None,
+                        'Contract_Currency': None,  # No currency when no rules apply
                         'Trigger_Formula': None,
                         'Trigger_Value': None,
                         'Sector_Eligibility': None,
@@ -1079,9 +1158,10 @@ class PLBRuleEngine:
         # Ensure all requested output columns are present even if empty
         expected_columns = [
             'Sector_Airline_Eligibility', 'Sector_Eligibility_Reason', 'processed_time', 'Contract_Document_Name', 
-            'Contract_Document_ID', 'Contract_Name', 'Contract_ID', 'Contract_Currency',
+            'Contract_Document_ID', 'Contract_Name', 'Contract_ID', 
             'Contract_Document_Start_Date', 'Contract_Document_Window_End', 
             'Contract_Rule_Creation_Date', 'Contract_Rule_Update_Date', 'Contract_Status',
+            'Contract_Currency',  # New: Currency from rule metadata
             'Trigger_Formula', 'Trigger_Value', 
             'Sector_Eligibility', # Restored as requested
             'Trigger_Eligibility', 'Trigger_Eligibility_Reason',

@@ -271,7 +271,7 @@ class ContractAnalysis(BaseModel):
     # New fields for dynamic rule loading
     ruleset_id: Optional[str] = None
     source_name: Optional[str] = None
-    currency: str = "USD"
+    currency: Optional[str] = None  # Currency from rule metadata
     
     # Rule management
     rule_creation_date: date
@@ -309,6 +309,7 @@ class ContractData(BaseModel):
     # New fields for dynamic rule loading
     ruleset_id: Optional[str] = None
     source_name: Optional[str] = None
+    currency: Optional[str] = None  # Currency from rule metadata
     
     # Contract window
     start_date: date
@@ -326,9 +327,6 @@ class ContractData(BaseModel):
     payout_formula: Optional[str] = None
     payout_percentage: Optional[Decimal] = None
     payout_eligibility_criteria: Dict[str, Any]
-    
-    # Financial details
-    currency: str = "USD"
     
     # Tier information
     tiers: List[Dict[str, Any]] = Field(default_factory=list)
