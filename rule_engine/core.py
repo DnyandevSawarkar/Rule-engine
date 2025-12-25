@@ -208,6 +208,7 @@ class RuleEngine:
                         # New fields for dynamic rule loading
                         ruleset_id=getattr(contract, 'ruleset_id', contract.document_name),
                         source_name=getattr(contract, 'source_name', contract.document_id),
+                        currency=getattr(contract, 'currency', 'USD'),
                         contract_window_date={
                             "start": contract.start_date,
                             "end": contract.end_date
@@ -351,7 +352,8 @@ class RuleEngine:
                 raise ValidationError("Airline code is required")
             
             if coupon_data.cpn_total_revenue <= 0:
-                raise ValidationError("Total revenue must be positive")
+                logger.warning(f"Coupon {coupon_data.ticket_number} has non-positive revenue: {coupon_data.cpn_total_revenue}. Processing will continue.")
+                # raise ValidationError("Total revenue must be positive") - Valid business case may have 0 revenue
             
             logger.debug("Coupon data validation passed")
             return coupon_data

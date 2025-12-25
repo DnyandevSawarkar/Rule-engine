@@ -64,10 +64,53 @@ class CouponData(BaseModel):
     cpn_is_international: Optional[bool] = False
     
     # New Array fields for enhanced matching
-    ticket_origin: Optional[str] = ""
-    ticket_destination: Optional[str] = ""
+    # Using Any to bypass strict Pydantic type checking for numpy arrays before validator runs
+    ticket_origin: Any = ""
+    ticket_destination: Any = ""
     ond_array: List[str] = Field(default_factory=list)
     pos_array: List[str] = Field(default_factory=list)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @validator('ticket_origin', 'ticket_destination', pre=True)
+    def handle_arrays_for_string_fields(cls, v):
+        """Handle numpy arrays or lists passed as values for string fields"""
+        if v is None:
+            return ""
+            
+        # Robust handling for numpy arrays without importing numpy
+        type_name = type(v).__name__
+        
+        # Handle numpy array (check by name or tolist attribute)
+        if type_name == 'ndarray' or hasattr(v, 'tolist'):
+            try:
+                # If it's a 0-d array, tolist returns the scalar
+                # If it's >0-d array, tolist returns list
+                v_list = v.tolist()
+                
+                # Recursively handle the result if it's still a list/array structure
+                if isinstance(v_list, (list, tuple)):
+                    if len(v_list) > 0:
+                        return cls.handle_arrays_for_string_fields(v_list[0])
+                    return ""
+                return str(v_list)
+            except Exception:
+                # If tolist fails, try string conversion of the first element if iterable
+                pass
+            
+        # Handle list/tuple
+        if isinstance(v, (list, tuple)):
+            if len(v) > 0:
+                # Recursively handle nested arrays if validation failed on deep structure
+                val = v[0]
+                if isinstance(val, (list, tuple)) or hasattr(val, 'tolist') or type(val).__name__ == 'ndarray':
+                     return cls.handle_arrays_for_string_fields(val)
+                return str(val)
+            return ""
+            
+        return str(v) if v is not None else ""
+
     
     @validator('ond_array', 'pos_array', pre=True)
     def parse_array_fields(cls, v):
@@ -228,6 +271,7 @@ class ContractAnalysis(BaseModel):
     # New fields for dynamic rule loading
     ruleset_id: Optional[str] = None
     source_name: Optional[str] = None
+    currency: str = "USD"
     
     # Rule management
     rule_creation_date: date
@@ -282,6 +326,9 @@ class ContractData(BaseModel):
     payout_formula: Optional[str] = None
     payout_percentage: Optional[Decimal] = None
     payout_eligibility_criteria: Dict[str, Any]
+    
+    # Financial details
+    currency: str = "USD"
     
     # Tier information
     tiers: List[Dict[str, Any]] = Field(default_factory=list)

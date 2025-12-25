@@ -5,8 +5,8 @@ import time
 from rule_engine_integrated import PLBRuleEngine
 
 def main():
-    input_file = "10K_prod_input.csv"
-    output_file = "processed_output.csv"
+    input_file = "mir_input.csv"
+    output_file = "mir_output.csv"
     
     # Check if input file exists
     if not os.path.exists(input_file):

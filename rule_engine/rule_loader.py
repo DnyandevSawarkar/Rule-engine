@@ -58,7 +58,17 @@ class RuleLoader:
                     logger.error(f"Failed to load contract from {json_file}: {str(e)}")
                     continue
             
-            logger.info(f"Successfully loaded {len(contracts)} total contracts from rules directory")
+            # Deduplicate contracts by contract_id
+            unique_contracts = {}
+            for contract in contracts:
+                if contract.contract_id not in unique_contracts:
+                    unique_contracts[contract.contract_id] = contract
+                else:
+                    logger.warning(f"Duplicate contract ID found and skipped: {contract.contract_id} (Rule: {contract.contract_name})")
+            
+            contracts = list(unique_contracts.values())
+            
+            logger.info(f"Successfully loaded {len(contracts)} unique contracts from rules directory")
             return contracts
             
         except Exception as e:
@@ -241,7 +251,9 @@ class RuleLoader:
             document_name = doc_header.get('Name', filename)
             start_date = datetime.strptime(doc_header.get('Start Date', '2025-01-01'), '%Y-%m-%d').date()
             end_date = datetime.strptime(doc_header.get('End Date', '2025-12-31'), '%Y-%m-%d').date()
-            currency = doc_header.get('Currency', 'NONE')
+            # Zen: Handle currency as string even if list provided
+            currency_raw = doc_header.get('Currency', 'NONE')
+            currency = str(currency_raw[0]) if isinstance(currency_raw, list) and currency_raw else str(currency_raw)
             location = doc_header.get('Location', 'Unknown')
             iata_codes = doc_header.get('IATA', [])
             countries = doc_header.get('Countries', [])
@@ -357,6 +369,7 @@ class RuleLoader:
                 # New fields for output mapping
                 ruleset_id=filename.replace('.json', ''),
                 source_name=document_name,
+                currency=currency,
                 start_date=start_date,
                 end_date=end_date,
                 trigger_type=trigger_type,
@@ -546,6 +559,8 @@ class RuleLoader:
                 # New fields for output mapping
                 ruleset_id=metadata.get('ruleset_id', filename.replace('.json', '')),
                 source_name=metadata.get('source_name', filename),
+                # Zen: Handle currency as string even if list provided in metadata
+                currency=str(metadata.get('currency', ['USD'])[0]) if isinstance(metadata.get('currency'), list) and metadata.get('currency') else str(metadata.get('currency', 'USD')),
                 start_date=start_date,
                 end_date=end_date,
                 trigger_type=trigger_type,

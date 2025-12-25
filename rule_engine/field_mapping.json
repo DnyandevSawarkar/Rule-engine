@@ -93,7 +93,7 @@
         },
         {
             "ruleField": "pos",
-            "inputPath": "pcc",
+            "inputPath": "pos_array",
             "criteriaGroup": "geographic",
             "dataType": "string",
             "nullHandling": "skip_and_allow",
@@ -111,7 +111,7 @@
                 "GB"
             ],
             "alternativePaths": [
-                "pos_array"
+                "pcc"
             ]
         },
         {
