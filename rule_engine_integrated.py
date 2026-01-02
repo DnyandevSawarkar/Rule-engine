@@ -558,11 +558,11 @@ class PLBRuleEngine:
                     # Default handling for other columns
                     result_row[col_name] = col_value if col_value is not None and not pd.isna(col_value) else ""
         
-        # Add rule engine specific fields
+        # Add rule engine specific fields (all lowercase)
         result_row.update({
-            "Airline Eligibility": result.airline_eligibility,
-            "Total Contracts Processed": result.total_contracts_processed,
-            "Eligible Contracts": result.eligible_contracts,
+            "airline_eligibility": result.airline_eligibility,
+            "total_contracts_processed": result.total_contracts_processed,
+            "eligible_contracts": result.eligible_contracts,
             "contract_mtp_id": ""  # Will be populated with contract-specific MTP IDs
         })
         
@@ -601,16 +601,18 @@ class PLBRuleEngine:
                 # Debug: Print extracted formulas for verification
                 print(f"Contract_{i} formulas - Trigger: {actual_trigger_formula}, Payout: {actual_payout_formula}")
                 
+                # Convert contract_prefix to lowercase for output columns
+                contract_prefix_lower = contract_prefix.lower()
                 result_row.update({
-                    f"{contract_prefix}_Rule": clean_rule_name,
-                    f"{contract_prefix}_Period": f"{analysis.contract_window_date.start.strftime('%b-%y') if hasattr(analysis.contract_window_date, 'start') else 'Unknown'} to {analysis.contract_window_date.end.strftime('%b-%y') if hasattr(analysis.contract_window_date, 'end') else 'Unknown'}",
-                    f"{contract_prefix}_Trigger_Formula": actual_trigger_formula,
-                    f"{contract_prefix}_Trigger_Value": f"{float(analysis.trigger_value):.2f}" if analysis.trigger_value else "0.00",
-                    f"{contract_prefix}_Trigger_Eligible": analysis.trigger_eligibility,
-                    f"{contract_prefix}_Payout_Formula": actual_payout_formula, 
-                    f"{contract_prefix}_Payout_Eligible": analysis.payout_eligibility,
-                    f"{contract_prefix}_Trigger_Reason": analysis.trigger_eligibility_reason if analysis.trigger_eligibility_reason is not None else "Eligible",
-                    f"{contract_prefix}_Payout_Reason": analysis.payout_eligibility_reason if analysis.payout_eligibility_reason is not None else "Eligible"
+                    f"{contract_prefix_lower}_rule": clean_rule_name,
+                    f"{contract_prefix_lower}_period": f"{analysis.contract_window_date.start.strftime('%b-%y') if hasattr(analysis.contract_window_date, 'start') else 'Unknown'} to {analysis.contract_window_date.end.strftime('%b-%y') if hasattr(analysis.contract_window_date, 'end') else 'Unknown'}",
+                    f"{contract_prefix_lower}_trigger_formula": actual_trigger_formula,
+                    f"{contract_prefix_lower}_trigger_value": f"{float(analysis.trigger_value):.2f}" if analysis.trigger_value else "0.00",
+                    f"{contract_prefix_lower}_trigger_eligible": analysis.trigger_eligibility,
+                    f"{contract_prefix_lower}_payout_formula": actual_payout_formula, 
+                    f"{contract_prefix_lower}_payout_eligible": analysis.payout_eligibility,
+                    f"{contract_prefix_lower}_trigger_reason": analysis.trigger_eligibility_reason if analysis.trigger_eligibility_reason is not None else "Eligible",
+                    f"{contract_prefix_lower}_payout_reason": analysis.payout_eligibility_reason if analysis.payout_eligibility_reason is not None else "Eligible"
                 })
                 
                 # Add tier computed values
@@ -654,7 +656,9 @@ class PLBRuleEngine:
             for tier_num in range(1, max_tiers + 1):
                 tier_percentage = tier_percentages.get(tier_num, 0.0)
                 tier_value = base_revenue * tier_percentage
-                tier_values[f"{contract_prefix}_Tier{tier_num}"] = f"{tier_value:.4f}"
+                # Convert to lowercase for output columns
+                contract_prefix_lower = contract_prefix.lower()
+                tier_values[f"{contract_prefix_lower}_tier{tier_num}"] = f"{tier_value:.4f}"
             
             return tier_values
             
@@ -843,9 +847,9 @@ class PLBRuleEngine:
         # Add rule engine fields - all false/zero for error rows
         result_row.update({
             "error": error_msg,
-            "Airline Eligibility": False,
-            "Total Contracts Processed": 0,
-            "Eligible Contracts": 0,
+            "airline_eligibility": False,
+            "total_contracts_processed": 0,
+            "eligible_contracts": 0,
             "contract_mtp_id": ""  # Empty for error rows
         })
         
@@ -1004,9 +1008,9 @@ class PLBRuleEngine:
         # Add rule engine fields - all false/zero for ineligible
         result_row.update({
             "error": reason,
-            "Airline Eligibility": False,
-            "Total Contracts Processed": 0,
-            "Eligible Contracts": 0,
+            "airline_eligibility": False,
+            "total_contracts_processed": 0,
+            "eligible_contracts": 0,
             "contract_mtp_id": ""  # Empty for ineligible coupons
         })
         
@@ -1016,9 +1020,9 @@ class PLBRuleEngine:
         """Calculate processing statistics"""
         return {
             "total_coupons": len(results_df),
-            "airline_eligible": results_df['Airline Eligibility'].sum(),
-            "total_contracts_processed": results_df['Total Contracts Processed'].sum(),
-            "eligible_contracts": results_df['Eligible Contracts'].sum(),
+            "airline_eligible": results_df['airline_eligibility'].sum(),
+            "total_contracts_processed": results_df['total_contracts_processed'].sum(),
+            "eligible_contracts": results_df['eligible_contracts'].sum(),
             "airline_breakdown": results_df['cpn_airline_code'].value_counts().to_dict()
         }
 
@@ -1066,10 +1070,10 @@ class PLBRuleEngine:
                 # Convert input row to dict to preserve all original columns
                 base_row_data = row.to_dict()
                 
-                # Common processing metadata
+                # Common processing metadata (all lowercase)
                 base_row_data['processed_time'] = get_ist_time()
-                base_row_data['Processing_error'] = ""
-                base_row_data['Sector_Airline_Eligibility'] = result.airline_eligibility
+                base_row_data['processing_error'] = ""
+                base_row_data['sector_airline_eligibility'] = result.airline_eligibility
                 
                 # Row Explosion Logic
                 # Zen: Filter out dummy 'NO_CONTRACT' entries often generated by the core engine for no-match cases
@@ -1082,31 +1086,31 @@ class PLBRuleEngine:
                         # Create a new row for each contract
                         output_row = base_row_data.copy()
                         
-                        # Populate rule-specific fields
+                        # Populate rule-specific fields (all lowercase)
                         output_row.update({
-                            'Contract_Document_Name': analysis.document_name,
-                            'Contract_Document_ID': analysis.document_id,
-                            'Contract_Name': analysis.contract_name,
-                            'Contract_ID': analysis.contract_id,
-                            'Contract_Document_Start_Date': analysis.contract_window_date.start,
-                            'Contract_Document_Window_End': analysis.contract_window_date.end,
-                            'Contract_Rule_Creation_Date': analysis.rule_creation_date,
-                            'Contract_Rule_Update_Date': analysis.rule_update_date,
-                            'Contract_Status': "Active",
-                            # Contract_Currency: from metadata, default to USD if not present, null if not eligible
-                            'Contract_Currency': (getattr(analysis, 'currency', None) or 'USD') if analysis.sector_eligibility else "",
+                            'contract_document_name': analysis.document_name,
+                            'contract_document_id': analysis.document_id,
+                            'contract_name': analysis.contract_name,
+                            'contract_id': analysis.contract_id,
+                            'contract_document_start_date': analysis.contract_window_date.start,
+                            'contract_document_window_end': analysis.contract_window_date.end,
+                            'contract_rule_creation_date': analysis.rule_creation_date,
+                            'contract_rule_update_date': analysis.rule_update_date,
+                            'contract_status': "Active",
+                            # contract_currency: from metadata, default to USD if not present, null if not eligible
+                            'contract_currency': (getattr(analysis, 'currency', None) or 'USD') if analysis.sector_eligibility else "",
                             
-                            'Trigger_Formula': analysis.trigger_formula,
-                            'Trigger_Value': float(analysis.trigger_value) if analysis.trigger_value is not None else 0.0,
-                            'Sector_Eligibility': analysis.sector_eligibility, # Alias for backward compatibility
-                            'Sector_Eligibility_Reason': analysis.sector_eligibility_reason,
-                            'Sector_Airline_Eligibility': analysis.sector_eligibility, # Restored column
-                            'Trigger_Eligibility': analysis.trigger_eligibility,
-                            'Trigger_Eligibility_Reason': analysis.trigger_eligibility_reason,
+                            'trigger_formula': analysis.trigger_formula,
+                            'trigger_value': float(analysis.trigger_value) if analysis.trigger_value is not None else 0.0,
+                            'sector_eligibility': analysis.sector_eligibility, # Alias for backward compatibility
+                            'sector_eligibility_reason': analysis.sector_eligibility_reason,
+                            'sector_airline_eligibility': analysis.sector_eligibility, # Restored column
+                            'trigger_eligibility': analysis.trigger_eligibility,
+                            'trigger_eligibility_reason': analysis.trigger_eligibility_reason,
                             
-                            'Payout_Eligibility': analysis.payout_eligibility,
-                            'Payout_Formula': analysis.payout_formula,
-                            'Payout_Eligibility_Reason': analysis.payout_eligibility_reason,
+                            'payout_eligibility': analysis.payout_eligibility,
+                            'payout_formula': analysis.payout_formula,
+                            'payout_eligibility_reason': analysis.payout_eligibility_reason,
                         })
                         
                         # Calculate and populate Tier values
@@ -1119,26 +1123,26 @@ class PLBRuleEngine:
                     output_row = base_row_data.copy()
                     
                     output_row.update({
-                        'Contract_Document_Name': None,
-                        'Contract_Document_ID': None,
-                        'Contract_Name': None,
-                        'Contract_ID': None,
-                        'Contract_Document_Start_Date': None,
-                        'Contract_Document_Window_End': None,
-                        'Contract_Rule_Creation_Date': None,
-                        'Contract_Rule_Update_Date': None,
-                        'Contract_Status': None,
-                        'Contract_Currency': "",  # No currency when no rules apply
-                        'Trigger_Formula': None,
-                        'Trigger_Value': None,
-                        'Sector_Eligibility': None,
-                        'Sector_Eligibility_Reason': None,
-                        'Sector_Airline_Eligibility': None, # Empty for non-matched
-                        'Trigger_Eligibility': None,
-                        'Trigger_Eligibility_Reason': None,
-                        'Payout_Eligibility': None,
-                        'Payout_Formula': None,
-                        'Payout_Eligibility_Reason': None,
+                        'contract_document_name': None,
+                        'contract_document_id': None,
+                        'contract_name': None,
+                        'contract_id': None,
+                        'contract_document_start_date': None,
+                        'contract_document_window_end': None,
+                        'contract_rule_creation_date': None,
+                        'contract_rule_update_date': None,
+                        'contract_status': None,
+                        'contract_currency': "",  # No currency when no rules apply
+                        'trigger_formula': None,
+                        'trigger_value': None,
+                        'sector_eligibility': None,
+                        'sector_eligibility_reason': None,
+                        'sector_airline_eligibility': None, # Empty for non-matched
+                        'trigger_eligibility': None,
+                        'trigger_eligibility_reason': None,
+                        'payout_eligibility': None,
+                        'payout_formula': None,
+                        'payout_eligibility_reason': None,
                     })
                     
                     results.append(output_row)
@@ -1147,31 +1151,31 @@ class PLBRuleEngine:
                 # Error handling - return row with error message
                 error_row = row.to_dict()
                 error_row['processed_time'] = get_ist_time()
-                error_row['Processing_error'] = str(e)
-                error_row['Sector_Airline_Eligibility'] = False
+                error_row['processing_error'] = str(e)
+                error_row['sector_airline_eligibility'] = False
                 results.append(error_row)
                 print(f"Error processing row {index}: {e}")
 
         # Create DataFrame from results
         output_df = pd.DataFrame(results)
         
-        # Ensure all requested output columns are present even if empty
+        # Ensure all requested output columns are present even if empty (all lowercase)
         expected_columns = [
-            'Sector_Airline_Eligibility', 'Sector_Eligibility_Reason', 'processed_time', 'Contract_Document_Name', 
-            'Contract_Document_ID', 'Contract_Name', 'Contract_ID', 
-            'Contract_Document_Start_Date', 'Contract_Document_Window_End', 
-            'Contract_Rule_Creation_Date', 'Contract_Rule_Update_Date', 'Contract_Status',
-            'Contract_Currency',  # New: Currency from rule metadata
-            'Trigger_Formula', 'Trigger_Value', 
-            'Sector_Eligibility', # Restored as requested
-            'Trigger_Eligibility', 'Trigger_Eligibility_Reason',
-            'Payout_Eligibility', 'Payout_Formula', 'Payout_Eligibility_Reason',
-            'Processing_error'
+            'sector_airline_eligibility', 'sector_eligibility_reason', 'processed_time', 'contract_document_name', 
+            'contract_document_id', 'contract_name', 'contract_id', 
+            'contract_document_start_date', 'contract_document_window_end', 
+            'contract_rule_creation_date', 'contract_rule_update_date', 'contract_status',
+            'contract_currency',  # New: Currency from rule metadata
+            'trigger_formula', 'trigger_value', 
+            'sector_eligibility', # Restored as requested
+            'trigger_eligibility', 'trigger_eligibility_reason',
+            'payout_eligibility', 'payout_formula', 'payout_eligibility_reason',
+            'processing_error'
         ]
         
-        # Add tier columns to expected list (1 to 10)
+        # Add tier columns to expected list (1 to 10) - all lowercase
         for i in range(1, 11):
-            expected_columns.append(f'Tier{i}_percent')
+            expected_columns.append(f'tier{i}_percent')
             expected_columns.append(f'tier{i}_payout')
         
         # Reorder columns: Input columns first, then expected output columns
@@ -1181,8 +1185,8 @@ class PLBRuleEngine:
             # Filter to only columns that actually exist or add missing ones
             for col in expected_columns:
                 if col not in output_df.columns:
-                    # Zen: Use None for Tier columns, but we will cast them to float later
-                    if (col.startswith('Tier') and '_percent' in col) or (col.startswith('tier') and '_payout' in col):
+                    # Zen: Use None for Tier columns, but we will cast them to float later (all lowercase)
+                    if (col.startswith('tier') and ('_percent' in col or '_payout' in col)):
                         output_df[col] = None
                     else:
                         output_df[col] = None
@@ -1198,9 +1202,9 @@ class PLBRuleEngine:
                         output_df[col] = output_df[col].fillna("").astype(str)
             
             # Zen: Explicitly enforce DoubleType (float) for Tier columns to prevent VoidType issue
-            # even if the column is full of Nones (which become NaNs)
+            # even if the column is full of Nones (which become NaNs) (all lowercase)
             for col in output_df.columns:
-                if (col.startswith('Tier') and '_percent' in col) or (col.startswith('tier') and '_payout' in col):
+                if (col.startswith('tier') and ('_percent' in col or '_payout' in col)):
                     output_df[col] = output_df[col].astype(float)
             
             output_df = output_df[final_order]
@@ -1216,9 +1220,9 @@ class PLBRuleEngine:
         tier_data = {}
         
         # Initialize 10 tiers with None (becomes NaN/Null) to ensure correct counting/stats
-        # but will be cast to float to ensure Schema is DoubleType
+        # but will be cast to float to ensure Schema is DoubleType (all lowercase)
         for i in range(1, 11):
-            tier_data[f'Tier{i}_percent'] = None
+            tier_data[f'tier{i}_percent'] = None
             tier_data[f'tier{i}_payout'] = None
             
         # CRITICAL FIX: If sector is not eligible, all payouts must be 0 or None
@@ -1242,7 +1246,7 @@ class PLBRuleEngine:
                     
                 payout = base_revenue * percentage
                 
-                tier_data[f'Tier{tier_num}_percent'] = percentage * 100 # stored as percent value (e.g. 5.0 for 5%)
+                tier_data[f'tier{tier_num}_percent'] = percentage * 100 # stored as percent value (e.g. 5.0 for 5%)
                 tier_data[f'tier{tier_num}_payout'] = payout
                 
         except Exception as e:

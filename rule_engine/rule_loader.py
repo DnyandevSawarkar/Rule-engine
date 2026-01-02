@@ -4,11 +4,17 @@ Rule loading and discovery functionality for API-based rule files
 
 import json
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from loguru import logger
+
+try:
+    from dateutil.relativedelta import relativedelta
+except ImportError:
+    # Fallback if dateutil not available - will use timedelta for months
+    relativedelta = None
 
 from .models import ContractData
 from .exceptions import ContractError
@@ -467,9 +473,24 @@ class RuleLoader:
             
             for i, rule in enumerate(rules, 1):
                 try:
-                    contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, i)
-                    if contract:
-                        contracts.append(contract)
+                    # Check for roll-back-to-zero with auto-generation
+                    reset_config = self._parse_reset_config(rule)
+                    
+                    if reset_config and reset_config.get('generate_mtps', False):
+                        # Generate multiple MTPs based on reset_config
+                        mtp_contracts = self._generate_mtps_for_rollback(
+                            rule, metadata, start_date, end_date, filename, reset_config
+                        )
+                        contracts.extend(mtp_contracts)
+                    else:
+                        # Single MTP (existing behavior or generate_mtps: false)
+                        contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, i)
+                        if contract:
+                            # Set evaluation_basis if it's roll-back-to-zero but not auto-generating
+                            if reset_config:
+                                contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                                contract.reset_config = reset_config
+                            contracts.append(contract)
                 except Exception as e:
                     logger.error(f"Error parsing rule {i} in {filename}: {str(e)}")
                     continue
@@ -506,6 +527,17 @@ class RuleLoader:
             what_if = rule.get('what_if', {})
             trigger_config = what_if.get('trigger', {})
             payout_config = what_if.get('payout', {})
+            
+            # Check for rule-specific active_window (for period-specific dates)
+            active_window = what_if.get('active_window', {})
+            if active_window:
+                # Use rule-specific dates from active_window
+                period_start = self._parse_date(active_window.get('from', start_date))
+                period_end = self._parse_date(active_window.get('to', end_date))
+            else:
+                # Fallback to metadata contract_window dates
+                period_start = start_date
+                period_end = end_date
             
             # Extract trigger configuration
             trigger_components = trigger_config.get('components', ['BASE'])
@@ -569,8 +601,8 @@ class RuleLoader:
                 ruleset_id=metadata.get('ruleset_id', filename.replace('.json', '')),
                 source_name=metadata.get('source_name', filename),
                 currency=metadata.get('currency', 'USD'),  # Currency from metadata
-                start_date=start_date,
-                end_date=end_date,
+                start_date=period_start,  # Use period-specific dates
+                end_date=period_end,      # Use period-specific dates
                 trigger_type=trigger_type,
                 trigger_components=trigger_components,
                 trigger_formula=trigger_formula,
@@ -667,6 +699,348 @@ class RuleLoader:
             List of tier data
         """
         return rule.get('tiers', [])
+    
+    def _parse_reset_config(self, rule: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Parse and validate reset_config from rule JSON
+        
+        Args:
+            rule: Rule data dictionary
+            
+        Returns:
+            Reset configuration dictionary or None if not found
+        """
+        try:
+            then_section = rule.get('then', {})
+            evaluation = then_section.get('evaluation', {})
+            
+            # Check if this is a roll-back-to-zero rule
+            if evaluation.get('basis') != 'ROLL_BACK_TO_ZERO':
+                return None
+            
+            reset_config = evaluation.get('reset_config', {})
+            
+            # If reset_config is empty, return None (backward compatibility)
+            if not reset_config:
+                return None
+            
+            # Validate and return reset_config
+            reset_type = reset_config.get('type', 'TIME_BASED')
+            period = reset_config.get('period', 'MONTHLY')
+            
+            # Validate reset_type
+            if reset_type not in ['TIME_BASED', 'THRESHOLD_BASED', 'SEASONAL']:
+                logger.warning(f"Invalid reset_type: {reset_type}, defaulting to TIME_BASED")
+                reset_config['type'] = 'TIME_BASED'
+            
+            # Validate period for TIME_BASED
+            if reset_type == 'TIME_BASED':
+                if period not in ['MONTHLY', 'QUARTERLY', 'CUSTOM']:
+                    logger.warning(f"Invalid period: {period}, defaulting to MONTHLY")
+                    reset_config['period'] = 'MONTHLY'
+                
+                # Validate custom period values
+                if period == 'CUSTOM':
+                    if not reset_config.get('reset_after_days') and not reset_config.get('reset_after_months'):
+                        logger.warning("CUSTOM period requires reset_after_days or reset_after_months, defaulting to MONTHLY")
+                        reset_config['period'] = 'MONTHLY'
+            
+            return reset_config
+            
+        except Exception as e:
+            logger.error(f"Error parsing reset_config: {str(e)}")
+            return None
+    
+    def _calculate_time_based_periods(self, start_date: date, end_date: date,
+                                      period: str, reset_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Calculate period boundaries based on period type
+        
+        Args:
+            start_date: Contract start date
+            end_date: Contract end date
+            period: Period type (MONTHLY, QUARTERLY, CUSTOM)
+            reset_config: Reset configuration dictionary
+            
+        Returns:
+            List of period dictionaries with index, start, and end dates
+        """
+        periods = []
+        current = start_date
+        index = 1
+        
+        try:
+            if period == 'MONTHLY':
+                while current <= end_date:
+                    # Calculate month end
+                    if current.month == 12:
+                        next_month_start = date(current.year + 1, 1, 1)
+                    else:
+                        next_month_start = date(current.year, current.month + 1, 1)
+                    
+                    period_end = next_month_start - timedelta(days=1)
+                    
+                    # Cap at contract end date
+                    if period_end > end_date:
+                        period_end = end_date
+                    
+                    periods.append({
+                        'index': index,
+                        'start': current,
+                        'end': period_end
+                    })
+                    
+                    # Move to next month
+                    current = period_end + timedelta(days=1)
+                    index += 1
+                    
+                    # Safety check to prevent infinite loops
+                    if index > 1000:
+                        logger.error("Too many periods calculated, breaking loop")
+                        break
+            
+            elif period == 'QUARTERLY':
+                if relativedelta is None:
+                    logger.error("dateutil.relativedelta not available for quarterly calculations")
+                    # Fallback: approximate quarters using days
+                    quarter_days = 90
+                    while current <= end_date:
+                        period_end = current + timedelta(days=quarter_days - 1)
+                        if period_end > end_date:
+                            period_end = end_date
+                        
+                        periods.append({
+                            'index': index,
+                            'start': current,
+                            'end': period_end
+                        })
+                        
+                        current = period_end + timedelta(days=1)
+                        index += 1
+                        
+                        if index > 100:
+                            break
+                else:
+                    while current <= end_date:
+                        # Calculate quarter end (3 months later)
+                        period_end = current + relativedelta(months=3) - timedelta(days=1)
+                        
+                        if period_end > end_date:
+                            period_end = end_date
+                        
+                        periods.append({
+                            'index': index,
+                            'start': current,
+                            'end': period_end
+                        })
+                        
+                        current = period_end + timedelta(days=1)
+                        index += 1
+                        
+                        if index > 100:
+                            break
+            
+            elif period == 'CUSTOM':
+                # Check for days or months
+                if reset_config.get('reset_after_days'):
+                    days = int(reset_config['reset_after_days'])
+                    while current <= end_date:
+                        period_end = current + timedelta(days=days - 1)
+                        if period_end > end_date:
+                            period_end = end_date
+                        
+                        periods.append({
+                            'index': index,
+                            'start': current,
+                            'end': period_end
+                        })
+                        
+                        current = period_end + timedelta(days=1)
+                        index += 1
+                        
+                        if index > 1000:
+                            break
+                
+                elif reset_config.get('reset_after_months'):
+                    months = int(reset_config['reset_after_months'])
+                    if relativedelta is None:
+                        logger.error("dateutil.relativedelta not available for custom month calculations")
+                        # Fallback: approximate using days
+                        days = months * 30
+                        while current <= end_date:
+                            period_end = current + timedelta(days=days - 1)
+                            if period_end > end_date:
+                                period_end = end_date
+                            
+                            periods.append({
+                                'index': index,
+                                'start': current,
+                                'end': period_end
+                            })
+                            
+                            current = period_end + timedelta(days=1)
+                            index += 1
+                            
+                            if index > 100:
+                                break
+                    else:
+                        while current <= end_date:
+                            period_end = current + relativedelta(months=months) - timedelta(days=1)
+                            if period_end > end_date:
+                                period_end = end_date
+                            
+                            periods.append({
+                                'index': index,
+                                'start': current,
+                                'end': period_end
+                            })
+                            
+                            current = period_end + timedelta(days=1)
+                            index += 1
+                            
+                            if index > 100:
+                                break
+            
+            return periods
+            
+        except Exception as e:
+            logger.error(f"Error calculating time-based periods: {str(e)}")
+            return []
+    
+    def _generate_mtps_for_rollback(self, rule: Dict[str, Any], metadata: Dict[str, Any],
+                                    start_date: date, end_date: date,
+                                    filename: str, reset_config: Dict[str, Any]) -> List[ContractData]:
+        """
+        Generate multiple ContractData objects (MTPs) based on reset_config
+        
+        Args:
+            rule: Original rule data
+            metadata: Rule metadata
+            start_date: Contract start date
+            end_date: Contract end date
+            filename: Source filename
+            reset_config: Reset configuration dictionary
+            
+        Returns:
+            List of ContractData objects (one per period)
+        """
+        contracts = []
+        
+        try:
+            reset_type = reset_config.get('type', 'TIME_BASED')
+            period = reset_config.get('period', 'MONTHLY')
+            mtp_naming = reset_config.get('mtp_naming', 'SEQUENTIAL')
+            generate_mtps = reset_config.get('generate_mtps', False)
+            
+            if not generate_mtps:
+                # If generate_mtps is False, return single MTP
+                contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, 1)
+                if contract:
+                    contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                    contract.reset_config = reset_config
+                    contracts.append(contract)
+                return contracts
+            
+            if reset_type == 'TIME_BASED':
+                # Calculate periods
+                periods = self._calculate_time_based_periods(start_date, end_date, period, reset_config)
+                
+                if not periods:
+                    logger.warning("No periods calculated, falling back to single MTP")
+                    contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, 1)
+                    if contract:
+                        contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                        contract.reset_config = reset_config
+                        contracts.append(contract)
+                    return contracts
+                
+                # Generate ContractData for each period
+                for period_info in periods:
+                    mtp_rule = rule.copy()
+                    period_index = period_info['index']
+                    period_start = period_info['start']
+                    period_end = period_info['end']
+                    
+                    # Generate MTP ID - extract base ID (remove existing _MTP suffix if present)
+                    base_rule_id = rule.get('rule_id', 'MTP')
+                    # Remove any existing _MTP suffix (e.g., "RULE_MTP1" -> "RULE", "RULE_MTP1_MTP2" -> "RULE")
+                    if '_MTP' in base_rule_id:
+                        # Find the last _MTP occurrence and remove everything after it
+                        last_mtp_pos = base_rule_id.rfind('_MTP')
+                        if last_mtp_pos > 0:
+                            base_rule_id = base_rule_id[:last_mtp_pos]
+                    
+                    if mtp_naming == 'DATE_BASED':
+                        mtp_rule['rule_id'] = f"{base_rule_id}_{period_start.strftime('%Y-%m')}"
+                    else:
+                        mtp_rule['rule_id'] = f"{base_rule_id}_MTP{period_index}"
+                    
+                    # Update active_window
+                    if 'what_if' not in mtp_rule:
+                        mtp_rule['what_if'] = {}
+                    mtp_rule['what_if']['active_window'] = {
+                        'from': period_start.isoformat(),
+                        'to': period_end.isoformat()
+                    }
+                    
+                    # Update rule name to include period
+                    if period_index == 1:
+                        # Keep original name for first MTP
+                        pass
+                    else:
+                        original_name = mtp_rule.get('name', '')
+                        if mtp_naming == 'DATE_BASED':
+                            period_name = period_start.strftime('%B %Y')
+                        else:
+                            period_name = f"Period {period_index}"
+                        mtp_rule['name'] = f"{original_name} - {period_name}"
+                    
+                    # Parse this MTP
+                    contract = self._parse_single_rule(
+                        mtp_rule, metadata, period_start, period_end, filename, period_index
+                    )
+                    
+                    if contract:
+                        # Set period-specific fields
+                        contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                        contract.reset_config = reset_config
+                        contract.mtp_period_index = period_index
+                        contract.period_start_date = period_start
+                        contract.period_end_date = period_end
+                        contracts.append(contract)
+            
+            elif reset_type == 'THRESHOLD_BASED':
+                # Single MTP that will reset when threshold reached
+                contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, 1)
+                if contract:
+                    contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                    contract.reset_config = reset_config
+                    contract.mtp_period_index = 1
+                    contract.period_start_date = start_date
+                    contract.period_end_date = end_date
+                    contracts.append(contract)
+            
+            else:
+                # Unknown reset type, fall back to single MTP
+                logger.warning(f"Unknown reset_type: {reset_type}, using single MTP")
+                contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, 1)
+                if contract:
+                    contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                    contract.reset_config = reset_config
+                    contracts.append(contract)
+            
+            logger.info(f"Generated {len(contracts)} MTPs for roll-back-to-zero contract")
+            return contracts
+            
+        except Exception as e:
+            logger.error(f"Error generating MTPs for rollback: {str(e)}")
+            # Fallback to single MTP on error
+            contract = self._parse_single_rule(rule, metadata, start_date, end_date, filename, 1)
+            if contract:
+                contract.evaluation_basis = 'ROLL_BACK_TO_ZERO'
+                contract.reset_config = reset_config
+                contracts.append(contract)
+            return contracts
     
     def _is_rule_applicable_to_airline(self, rule: ContractData, airline_code: str) -> bool:
         """

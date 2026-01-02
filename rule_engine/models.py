@@ -341,3 +341,10 @@ class ContractData(BaseModel):
     
     # Addon rule cases for special eligibility overrides
     addon_rule_cases: List[Dict[str, Any]] = Field(default_factory=list)
+    
+    # Roll-back-to-zero MTP generation fields
+    evaluation_basis: Optional[str] = None  # "ROLL_BACK_TO_ZERO" or None
+    reset_config: Optional[Dict[str, Any]] = Field(default_factory=dict)  # Full reset configuration from rule
+    mtp_period_index: Optional[int] = None  # Period number (1, 2, 3, etc.)
+    period_start_date: Optional[date] = None  # Period-specific start date
+    period_end_date: Optional[date] = None  # Period-specific end date
