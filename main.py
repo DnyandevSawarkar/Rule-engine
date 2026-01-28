@@ -5,8 +5,8 @@ import time
 from rule_engine_integrated import PLBRuleEngine
 
 def main():
-    input_file = "mir_input.csv"
-    output_file = "mir_output.csv"
+    input_file = r"input/EK_TZ_Jan25_Mar25_PLB_rule_T_IN_fixed.csv"
+    output_file = r"output/EK_TZ.csv"
     
     # Check if input file exists
     if not os.path.exists(input_file):

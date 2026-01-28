@@ -23,6 +23,20 @@ class ComputationEngine:
         self.logger = logger
         self.precision = 4  # Decimal precision for calculations
         self.formula_parser = FormulaParser()
+
+    def _safe_decimal(self, value: Any, default: str = "0") -> Decimal:
+        """
+        Safely convert a value to Decimal.
+        
+        Any invalid or non‑numeric input is logged and replaced by the
+        provided default (as a string) to avoid Decimal(ConversionSyntax)
+        bubbling up and breaking processing.
+        """
+        try:
+            return Decimal(str(value))
+        except Exception as e:
+            self.logger.warning(f"Invalid decimal value '{value}' – using default {default}. Error: {e}")
+            return Decimal(default)
     
     def compute_trigger(self, coupon: CouponData, contract: ContractData) -> Decimal:
         """
@@ -236,12 +250,14 @@ class ComputationEngine:
                 if 'target' in row and isinstance(row['target'], dict):
                     # New format
                     target = row['target']
-                    min_value = Decimal(str(target.get('min', 0)))
-                    max_value = Decimal(str(target.get('max', float('inf'))))
+                    min_value = self._safe_decimal(target.get('min', 0))
+                    max_raw = target.get('max', float('inf'))
+                    max_value = self._safe_decimal(max_raw) if max_raw != float('inf') else Decimal(str(float('inf')))
                 else:
                     # Old format
-                    min_value = Decimal(str(row.get('target_min', 0)))
-                    max_value = Decimal(str(row.get('target_max', float('inf'))))
+                    min_value = self._safe_decimal(row.get('target_min', 0))
+                    max_raw = row.get('target_max', float('inf'))
+                    max_value = self._safe_decimal(max_raw) if max_raw != float('inf') else Decimal(str(float('inf')))
                 
                 if min_value <= revenue <= max_value:
                     return row
@@ -263,11 +279,11 @@ class ComputationEngine:
         if 'payout' in tier and isinstance(tier['payout'], dict):
             # New format
             payout = tier['payout']
-            payout_value = Decimal(str(payout.get('value', 0)))
+            payout_value = self._safe_decimal(payout.get('value', 0))
             payout_unit = payout.get('unit', 'PERCENT')
         else:
             # Old format
-            payout_value = Decimal(str(tier.get('payout_value', 0)))
+            payout_value = self._safe_decimal(tier.get('payout_value', 0))
             payout_unit = tier.get('payout_unit', 'PERCENT')
         
         if payout_unit == 'PERCENT':
@@ -328,21 +344,23 @@ class ComputationEngine:
                     if 'target' in row and isinstance(row['target'], dict):
                         # New format
                         target = row['target']
-                        min_value = Decimal(str(target.get('min', 0)))
-                        max_value = Decimal(str(target.get('max', float('inf'))))
+                        min_value = self._safe_decimal(target.get('min', 0))
+                        max_raw = target.get('max', float('inf'))
+                        max_value = self._safe_decimal(max_raw) if max_raw != float('inf') else Decimal(str(float('inf')))
                     else:
                         # Old format
-                        min_value = Decimal(str(row.get('target_min', 0)))
-                        max_value = Decimal(str(row.get('target_max', float('inf'))))
+                        min_value = self._safe_decimal(row.get('target_min', 0))
+                        max_raw = row.get('target_max', float('inf'))
+                        max_value = self._safe_decimal(max_raw) if max_raw != float('inf') else Decimal(str(float('inf')))
                     
                     if 'payout' in row and isinstance(row['payout'], dict):
                         # New format
                         payout = row['payout']
-                        payout_value = Decimal(str(payout.get('value', 0)))
+                        payout_value = self._safe_decimal(payout.get('value', 0))
                         payout_unit = payout.get('unit', 'PERCENT')
                     else:
                         # Old format
-                        payout_value = Decimal(str(row.get('payout_value', 0)))
+                        payout_value = self._safe_decimal(row.get('payout_value', 0))
                         payout_unit = row.get('payout_unit', 'PERCENT')
                     
                     tier_info = {

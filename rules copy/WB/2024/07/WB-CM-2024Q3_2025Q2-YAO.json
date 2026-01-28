@@ -1,0 +1,165 @@
+{
+    "ruleset_id": "6549ece0-e92d-48d4-aca5-669f0a79f0c2",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "Rwand Air YAO Jul24-Jun25.pdf",
+      "contract_window": { "start_date": "2024-07-01", "end_date": "2025-06-30" },
+      "currency": ["XAF"],
+      "location": "Yaoundé, Cameroon (POS CM; Cities YAO/NSI)",
+      "iata_codes": ["1021028"],
+      "countries": ["CM"],
+      "airlines": ["RwandAir"],
+      "airline_codes": ["WB"],
+      "number_of_mtp": 1,
+      "discovery_notes": "Incremental backend on FLOWN, computed on BASE+YQ. Tour Code WBDLA03 is mandatory. WB ticket stock and WB-operated only. Codeshare/interline out. Capping at top slab trigger (700,000 XAF) for progression; revenue beyond pays at top rate."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "6549ece0-e92d-48d4-aca5-669f0a79f0c2_MTP1",
+        "name": "Yaoundé – Incremental Flown Backend (BASE+YQ; Tour Code WBDLA03)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2024-07-01", "to": "2025-06-30" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "NRF = BASE + YQ on WB-ticketed and WB-operated flown coupons; taxes/fees excluded.",
+            "capping": { "enabled": true, "value": 700000 }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "payout_amount = tier_percent * (BASE + YQ)",
+            "expected_percent_range": { "min": 1.0, "max": 3.0, "logic": "Top rate 3% applies at/above last slab; progression capped at 700,000 XAF" },
+            "capping": { "enabled": true, "value": 700000 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "RBD": ["ANY"],
+            "Cabin": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Sales Date": "2024-07-01 to 2025-06-30",
+            "Travel Date": "2024-07-01 to 2025-06-30",
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["WBDLA03"],
+            "PCCs": ["YAO282820","YAQ2828AH","64F5","3KGN"],
+            "City Codes": ["YAO","NSI"],
+            "POS": ["CM"],
+            "POO": ["ANY"],
+            "Code Share": false,
+            "Interline": false,
+            "Alliance": ["ANY"],
+            "Marketing Airline": ["WB"],
+            "Operating Airline": ["WB"],
+            "Ticketing Airline": ["WB"],
+            "NDC": false
+          },
+          "OUT": {
+            "Code Share": true,
+            "Interline": true
+          },
+          "SILENT": {
+            "Dom/Intl": ["ANY"],
+            "Fare Type": ["ANY"],
+            "Fare Basis Patterns": ["ANY"],
+            "Fare Class Logic": ["ANY"],
+            "Fare Basis Logic": ["ANY"],
+            "Alliance": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Tour Code": ["WBDLA03"],
+            "Marketing Airline": ["WB"],
+            "Operating Airline": ["WB"],
+            "Ticketing Airline": ["WB"]
+          },
+          "OUT": {},
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Incremental Ladder – Yaoundé (XAF; BASE+YQ)",
+            "table_filter": { "key": "IATA", "value": ["1021028"] },
+            "rows": [
+              { "metric": "Net Flown Revenue (XAF)", "target": { "min": 1, "max": 490000 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (XAF)", "target": { "min": 490001, "max": 560000 }, "payout": { "value": 1.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (XAF)", "target": { "min": 560001, "max": 630000 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (XAF)", "target": { "min": 630001, "max": 700000 }, "payout": { "value": 2.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (XAF)", "target": { "min": 700001, "max": "INF" }, "payout": { "value": 3.0, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "Incremental Ladder – Yaoundé (XAF; BASE+YQ)",
+                "metric": "Net Flown Revenue (XAF)",
+                "respect_capping": true,
+                "cap_value": 700000,
+                "cap_logic": "Progression (tier stepping) capped at 700,000 XAF; revenue above is paid at the top rate (3%)."
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "XAF",
+                "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE + YQ), Tour Code WBDLA03 required."
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "Top slab trigger = 700000 XAF",
+            "notes": "No further rate escalation beyond 700,000 XAF; amounts above pay at 3%."
+          },
+          "performance_guards": [
+            "WB-operated sectors only; WB ticket stock.",
+            "Tour Code WBDLA03 must be printed on all eligible tickets.",
+            "Codeshare and interline coupons are not eligible."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-29",
+      "rule_update_date": "2025-09-29",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+   

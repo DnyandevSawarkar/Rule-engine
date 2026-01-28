@@ -1,0 +1,624 @@
+{
+  "ruleset_id": "b3bde08a-d994-4fba-a202-671f89afe228",
+  "version": "1.0",
+  "metadata": {
+    "source_name": "QR EG Apr-Sep25 PLB.pdf",
+    "contract_window": {
+      "start_date": "2025-04-01",
+      "end_date": "2025-09-30"
+    },
+    "currency": [
+      "EGP"
+    ],
+    "location": "Egypt (POS EG, CAI)",
+    "iata_codes": [
+      "9022273"
+    ],
+    "countries": [
+      "EG"
+    ],
+    "airlines": [
+      "Qatar Airways"
+    ],
+    "airline_codes": [
+      "QR"
+    ],
+    "number_of_mtp": 6,
+    "discovery_notes": "Roll-back-to-zero incentive on Payment Revenue (Base+YQ) with cap at Tier 4 end (13,765,939 EGP). Separate IN/OUT matrices by deal/discount/RBD/revenue. Strategic partner codeshares (JL/AY/GA/VA on listed flights/routes) can override ineligibility when conditions match."
+  },
+  "rules": [
+    {
+      "rule_id": "b3bde08a-d994-4fba-a202-671f89afe228_MTP1",
+      "name": "QR Egypt PLB Apr–Sep 2025 – Revenue Targets (Roll Back to Zero)",
+      "type": "Single Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": true,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": {
+          "from": "2025-04-01",
+          "to": "2025-09-30"
+        },
+        "trigger": {
+          "type": "SALES",
+          "measure": [
+            "Net Sales"
+          ],
+          "components": [
+            "BASE",
+            "YQ"
+          ],
+          "formula": "Payment Revenue = BASE + YQ; when a tier threshold is reached within the term, it triggers payout for the whole eligible period.",
+          "capping": {
+            "enabled": true,
+            "value": "13765939"
+          }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "FIXED",
+          "measure": [
+            "Net Sales"
+          ],
+          "components": [
+            "BASE",
+            "YQ"
+          ],
+          "formula": "payout_amount = (tier_percent) * (BASE + YQ) on ALL eligible revenue for the period (roll-back-to-zero).",
+          "expected_percent_range": {
+            "min": 1,
+            "max": 4,
+            "logic": "As per tier table"
+          },
+          "capping": {
+            "enabled": true,
+            "value": "13765939"
+          }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "RBD": [
+            "F",
+            "A",
+            "J",
+            "C",
+            "D",
+            "I",
+            "R",
+            "P",
+            "Y",
+            "B",
+            "H",
+            "K",
+            "M",
+            "L",
+            "V",
+            "S",
+            "N",
+            "Q",
+            "T",
+            "G",
+            "O",
+            "W"
+          ],
+          "Fare Type": [
+            "Ad-hoc Fares (Iprice)",
+            "Traders",
+            "Qatar Holidays",
+            "Interline Deals",
+            "Public Promotion",
+            "Beyond Business",
+            "GDS - Public fare",
+            "MICE"
+          ],
+          "O&D Area": [
+            "INTRAGCC"
+          ],
+          "Routes": [
+            "DOH-HND",
+            "HND-DOH",
+            "HEL-DOH",
+            "DOH-HEL",
+            "CGK-DOH",
+            "DOH-CGK",
+            "SYD-DOH",
+            "DOH-SYD",
+            "MEL-DOH",
+            "DOH-MEL",
+            "BNE-DOH",
+            "DOH-BNE",
+            "PER-DOH",
+            "DOH-PER"
+          ],
+          "Flight Nos": [
+            "QR4850",
+            "QR4851",
+            "QR6121",
+            "QR6122",
+            "QR6380",
+            "QR6381",
+            "QR8400",
+            "QR8401",
+            "QR8402",
+            "QR8403",
+            "QR8404",
+            "QR8405",
+            "QR8406",
+            "QR8407"
+          ],
+          "Sales Date": "2025-04-01 to 2025-09-30",
+          "Travel Date": "2025-04-01 to 2025-09-30",
+          "City Codes": [
+            "CAI"
+          ],
+          "POS": [
+            "EG"
+          ],
+          "Marketing Airline": [
+            "QR"
+          ],
+          "Operating Airline": [
+            "QR",
+            "JL",
+            "AY",
+            "GA",
+            "VA"
+          ],
+          "Ticketing Airline": [
+            "QR"
+          ],
+          "SITI/SOTO/SITO/SOTI": [
+            "SOTO (allowed)"
+          ]
+        },
+        "OUT": {
+          "RBD": [
+            "Z",
+            "U",
+            "X",
+            "E"
+          ],
+          "Fare Type": [
+            "Corporate Global",
+            "Corporate Local",
+            "Consortia - TMC",
+            "Groups AdHoc - Discounted",
+            "FIT Worker",
+            "Specialities",
+            "Private Promo",
+            "Groups AdHoc - Market Fare",
+            "Front End Discount (CAT25 35)",
+            "Groups-Series",
+            "Tour Operator",
+            "VFR",
+            "Worker",
+            "Groups - Nego Space",
+            "Fam trips - FOC tickets"
+          ],
+          "Other": [
+            "Other Airline Document (OTADOC)"
+          ]
+        },
+        "SILENT": {
+          "Cabin": [
+            "ANY"
+          ],
+          "Dom/Intl": [
+            "ANY"
+          ],
+          "Route Notes": [
+            "GA CGK↔DOH effective from 2025-04-03/04 per direction"
+          ]
+        }
+      },
+      "where_payout": {
+        "IN": {
+          "RBD": [
+            "F",
+            "A",
+            "J",
+            "C",
+            "D",
+            "I",
+            "R",
+            "P",
+            "Y",
+            "B",
+            "H",
+            "K",
+            "M",
+            "L",
+            "V",
+            "S",
+            "N",
+            "Q",
+            "T",
+            "G",
+            "O"
+          ],
+          "Fare Type": [
+            "Ad-hoc Fares (Iprice)",
+            "Traders",
+            "Qatar Holidays",
+            "Interline Deals",
+            "Public Promotion",
+            "Beyond Business",
+            "GDS - Public fare",
+            "MICE"
+          ],
+          "O&D Area": [
+            "INTRAGCC"
+          ],
+          "Routes": [
+            "DOH-HND",
+            "HND-DOH",
+            "HEL-DOH",
+            "DOH-HEL",
+            "CGK-DOH",
+            "DOH-CGK",
+            "SYD-DOH",
+            "DOH-SYD",
+            "MEL-DOH",
+            "DOH-MEL",
+            "BNE-DOH",
+            "DOH-BNE",
+            "PER-DOH",
+            "DOH-PER"
+          ],
+          "Flight Nos": [
+            "QR4850",
+            "QR4851",
+            "QR6121",
+            "QR6122",
+            "QR6380",
+            "QR6381",
+            "QR8400",
+            "QR8401",
+            "QR8402",
+            "QR8403",
+            "QR8404",
+            "QR8405",
+            "QR8406",
+            "QR8407"
+          ],
+          "Sales Date": "2025-04-01 to 2025-09-30",
+          "Travel Date": "2025-04-01 to 2025-09-30",
+          "City Codes": [
+            "CAI"
+          ],
+          "POS": [
+            "EG"
+          ],
+          "Marketing Airline": [
+            "QR"
+          ],
+          "Operating Airline": [
+            "QR",
+            "JL",
+            "AY",
+            "GA",
+            "VA"
+          ],
+          "Ticketing Airline": [
+            "QR"
+          ]
+        },
+        "OUT": {
+          "RBD": [
+            "W",
+            "X",
+            "E",
+            "Z",
+            "U"
+          ],
+          "Fare Type": [
+            "Corporate Global",
+            "Corporate Local",
+            "Consortia - TMC",
+            "Groups AdHoc - Discounted",
+            "FIT Worker",
+            "Specialities",
+            "Private Promo",
+            "Groups AdHoc - Market Fare",
+            "Front End Discount (CAT25 35)",
+            "Groups-Series",
+            "Tour Operator",
+            "VFR",
+            "Worker",
+            "Groups - Nego Space",
+            "Fam trips - FOC tickets"
+          ],
+          "SITI/SOTO/SITO/SOTI": [
+            "SOTO (excluded at payout)"
+          ],
+          "Other": [
+            "Other Airline Document (OTADOC)"
+          ]
+        },
+        "SILENT": {}
+      },
+      "tiers": [
+        {
+          "table_label": "Total Target Revenue (EGP) – Roll Back to Zero",
+          "table_filter": {
+            "key": "Scope",
+            "value": [
+              "Payment Revenue (BASE+YQ)"
+            ]
+          },
+          "rows": [
+            {
+              "metric": "Net Sales (EGP)",
+              "target": {
+                "min": 8603712,
+                "max": 10324453
+              },
+              "payout": {
+                "value": 1,
+                "unit": "PERCENT"
+              }
+            },
+            {
+              "metric": "Net Sales (EGP)",
+              "target": {
+                "min": 10324454,
+                "max": 11184824
+              },
+              "payout": {
+                "value": 2,
+                "unit": "PERCENT"
+              }
+            },
+            {
+              "metric": "Net Sales (EGP)",
+              "target": {
+                "min": 11184825,
+                "max": 12475381
+              },
+              "payout": {
+                "value": 3,
+                "unit": "PERCENT"
+              }
+            },
+            {
+              "metric": "Net Sales (EGP)",
+              "target": {
+                "min": 12475382,
+                "max": 13765939
+              },
+              "payout": {
+                "value": 4,
+                "unit": "PERCENT"
+              }
+            }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": {
+          "basis": "ROLL_BACK_TO_ZERO",
+          "measure_name": "Net Sales",
+          "apply_components": [
+            "BASE",
+            "YQ"
+          ],
+          "period_level_notes": "Once a tier is reached, apply that tier % to ALL eligible Payment Revenue for the term (subject to cap).",
+          "reset_config": {
+            "type": "TIME_BASED",
+            "period": "MONTHLY",
+            "reset_trigger": "AUTO",
+            "generate_mtps": true,
+            "mtp_naming": "SEQUENTIAL",
+            "handle_tier4_reset": true,
+            "new_incentive_negotiable": true
+          }
+        },
+        "actions": [
+          {
+            "action": "APPLY_STRATEGIC_PARTNER_OVERRIDE",
+            "inputs": {
+              "addon_rule_id": "ADDON-SP-QR-OVERRIDE",
+              "respect_effective_dates": true
+            },
+            "output": {
+              "field": "partner_override_applied",
+              "unit": "BOOLEAN",
+              "explanation": "If coupon failed base eligibility but matches a Strategic Partner mapping (flight+route+operator+dates), mark eligible."
+            }
+          },
+          {
+            "action": "SELECT_RB0_TIER",
+            "inputs": {
+              "slab_table": "Total Target Revenue (EGP) – Roll Back to Zero",
+              "metric": "Net Sales (EGP)"
+            },
+            "output": {
+              "field": "selected_percent",
+              "unit": "PERCENT",
+              "explanation": "Choose the highest achieved tier percent for the period."
+            }
+          },
+          {
+            "action": "COMPUTE_PAYOUT_RB0",
+            "inputs": {
+              "percent_field": "selected_percent"
+            },
+            "output": {
+              "field": "payout_amount",
+              "unit": "EGP",
+              "explanation": "payout_amount = selected_percent * (BASE + YQ) across the period (within cap)."
+            }
+          },
+          {
+            "action": "ENFORCE_CAP",
+            "inputs": {
+              "cap_value_egp": 13765939,
+              "logic": "Do not count Payment Revenue above Tier 4 end for payout computation."
+            },
+            "output": {
+              "field": "payout_amount_capped",
+              "unit": "EGP",
+              "explanation": "Cap enforced at Tier 4 'Tier End'."
+            }
+          }
+        ]
+      },
+      "addon_rule_cases": [
+        {
+          "addon_rule_id": "ADDON-SP-QR-OVERRIDE",
+          "name": "Strategic Partner Codeshare Eligibility Override",
+          "purpose": "Make otherwise ineligible coupons eligible when they match listed QR-marketed, partner-operated flights/routes within effective dates.",
+          "when_to_apply": "Apply after base IN/OUT filtering; only for coupons rejected due to operating carrier/codeshare conditions or route/flight constraints.",
+          "override_logic": "IF (Marketing_Airline==QR) AND (Operating_Airline, Flight_No, Route match any mapping below) AND (Travel_Date within mapping effective dates if present) THEN set eligibility=TRUE for both trigger and payout, ignoring conflicting OUT flags (except OTADOC).",
+          "mappings": [
+            {
+              "marketing_flight": "QR4850",
+              "operating_airline": "JL",
+              "route": "DOH-HND",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR4851",
+              "operating_airline": "JL",
+              "route": "HND-DOH",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR6121",
+              "operating_airline": "AY",
+              "route": "HEL-DOH",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR6122",
+              "operating_airline": "AY",
+              "route": "DOH-HEL",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR6380",
+              "operating_airline": "GA",
+              "route": "CGK-DOH",
+              "effective_from": "2025-04-03",
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR6381",
+              "operating_airline": "GA",
+              "route": "DOH-CGK",
+              "effective_from": "2025-04-04",
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8400",
+              "operating_airline": "VA",
+              "route": "SYD-DOH",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8401",
+              "operating_airline": "VA",
+              "route": "DOH-SYD",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8402",
+              "operating_airline": "VA",
+              "route": "MEL-DOH",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8403",
+              "operating_airline": "VA",
+              "route": "DOH-MEL",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8404",
+              "operating_airline": "VA",
+              "route": "BNE-DOH",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8405",
+              "operating_airline": "VA",
+              "route": "DOH-BNE",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8406",
+              "operating_airline": "VA",
+              "route": "PER-DOH",
+              "effective_from": null,
+              "effective_to": null
+            },
+            {
+              "marketing_flight": "QR8407",
+              "operating_airline": "VA",
+              "route": "DOH-PER",
+              "effective_from": null,
+              "effective_to": null
+            }
+          ],
+          "exclusions_still_applicable": [
+            "Other Airline Document (OTADOC)",
+            "Disallowed RBDs per payout table (W/X/E/Z/U)",
+            "Disallowed deal/discount families listed in OUT"
+          ]
+        }
+      ],
+      "guards": {
+        "contract_cap": {
+          "enabled": true,
+          "value": "13765939",
+          "notes": "Revenue and tactical incentives are capped at the highest tier end with corresponding percent."
+        },
+        "performance_guards": [
+          "Incentives can be achieved independently across categories.",
+          "Payment due within 60 days after reaching highest tier; parties may negotiate a new incentive for remaining term."
+        ]
+      }
+    }
+  ],
+  "metric_eligibility": {
+    "NDC share": {
+      "applies": false,
+      "threshold": "NONE"
+    },
+    "Year on year growth": {
+      "applies": false,
+      "threshold": "NONE"
+    },
+    "Period over period growth": {
+      "applies": false,
+      "threshold": "NONE"
+    },
+    "Simple slab": {
+      "applies": true
+    }
+  },
+  "rule_mgmt": {
+    "rule_creation_date": "2025-09-28",
+    "rule_update_date": "2025-09-28",
+    "rule_active_status": "ACTIVE"
+  }
+}

@@ -1,0 +1,176 @@
+{
+    "ruleset_id": "76c89270-3fdb-48a8-8b29-32ffecf54e43",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "Emirates EG Apr25-Mar26.pdf",
+      "contract_window": { "start_date": "2025-04-01", "end_date": "2026-03-31" },
+      "currency": ["EGP"],
+      "location": "Egypt (POS EG, CAI)",
+      "iata_codes": ["9022273"],
+      "countries": ["EG"],
+      "airlines": ["Emirates"],
+      "airline_codes": ["EK"],
+      "number_of_mtp": 1,
+      "discovery_notes": "Incremental PLB on Net Flown Revenue (BASE+YQ). BLP coverage 100% for classes F/J/W/Y across Coupon/Pax/Revenue. EK ticket stock (176) and EK marketed/operated only. OAL paper excluded. Monthly provisional; payout within 90 days post period."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "76c89270-3fdb-48a8-8b29-32ffecf54e43_MTP1",
+        "name": "Emirates Egypt PLB – Incremental Growth Slabs (Apr 2025–Mar 2026)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-04-01", "to": "2026-03-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "NRF = BASE + YQ accrued within flown period for eligible O&Ds, fares, classes, dates, and flight numbers",
+            "capping": { "enabled": false, "value": 0 }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "payout_amount = tier_percent * (BASE + YQ)",
+            "expected_percent_range": { "min": 1.0, "max": 4.0, "logic": "Per growth percentage slabs" },
+            "capping": { "enabled": false, "value": 0 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Cabin Group": ["F","J","W","Y"],
+            "RBD": ["ALL"],
+            "Fare Type": ["IT Fares","Market Fares","YQ","EK Corporate Deal Revenue","Paid Seat (Trigger Only)"],
+            "O&D": ["ALL→EGYPT (All Tickets)","EGYPT→ALL (All Tickets)"],
+            "Flight Nos": ["ALL (all days)"],
+            "Sales Date": "2025-04-01 to 2026-03-31",
+            "Travel Date": "2025-04-01 to 2026-03-31",
+            "City Codes": ["CAI"],
+            "POS": ["EG"],
+            "Marketing Airline": ["EK"],
+            "Operating Airline": ["EK"],
+            "Ticketing Airline": ["EK (176)"],
+            "Other": ["Participating Agency IATA 9022273 included for Trigger & Payout"]
+          },
+          "OUT": {
+            "Fare Type": ["ID/AD Fare","Interline Fares","ACM","EK Holidays","Paper Ticket (non-176)"],
+            "Code Share": ["All OAL paper excluded unless explicitly stated"]
+          },
+          "SILENT": {
+            "Dom/Intl": ["ANY"],
+            "Route": ["ANY"],
+            "O&D Patterns": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"],
+            "PCCs": ["ANY"],
+            "NDC": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Cabin Group": ["F","J","W","Y"],
+            "Sales Date": "2025-04-01 to 2026-03-31",
+            "Travel Date": "2025-04-01 to 2026-03-31",
+            "Marketing Airline": ["EK"],
+            "Operating Airline": ["EK"],
+            "Ticketing Airline": ["EK (176)"],
+            "POS": ["EG"]
+          },
+          "OUT": {
+            "Fare Type": ["ID/AD Fare","Interline Fares","ACM","EK Holidays","Paper Ticket (non-176)"]
+          },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Growth-based Incentive – F/J/W/Y (Incremental)",
+            "table_filter": { "key": "Cabin Group", "value": ["F","J","W","Y"] },
+            "rows": [
+              { "metric": "Growth Percentage", "target": { "min": 5.00, "max": 20.00 }, "payout": { "value": 1.00, "unit": "PERCENT" } },
+              { "metric": "Growth Percentage", "target": { "min": 20.01, "max": 35.00 }, "payout": { "value": 2.00, "unit": "PERCENT" } },
+              { "metric": "Growth Percentage", "target": { "min": 35.01, "max": 70.00 }, "payout": { "value": 4.00, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": {
+            "basis": "INCREMENTAL",
+            "measure_name": "Net Flown Revenue",
+            "apply_components": ["BASE","YQ"],
+            "period_level_notes": "Use aggregated growth % over the term to select incremental bands; apply per-slab % on (BASE+YQ)."
+          },
+          "actions": [
+            {
+              "action": "CHECK_BLP_COVERAGE",
+              "inputs": {
+                "required_classes": ["F","J","W","Y"],
+                "coverage_requirements": ["Coupon","Pax","Revenue"],
+                "coverage_percent": 100
+              },
+              "output": {
+                "field": "blp_ok",
+                "unit": "BOOLEAN",
+                "explanation": "BLP coverage must be 100% for F/J/W/Y across Coupon, Pax, and Revenue."
+              }
+            },
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "when": { "all": [{ "field": "blp_ok", "op": "==", "value": true }] },
+              "inputs": {
+                "slab_table": "Growth-based Incentive – F/J/W/Y (Incremental)",
+                "metric": "Growth Percentage",
+                "respect_capping": false
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "EGP",
+                "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE + YQ)"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": false, "value": 0, "notes": "" },
+          "performance_guards": [
+            "Monthly performance is provisional.",
+            "EK may deduct GDS costs for unproductive segments.",
+            "Payments not backdated prior to the contract month.",
+            "Either party may terminate with notice per terms."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": true, "threshold": "Growth Percentage" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-28",
+      "rule_update_date": "2025-09-28",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+  

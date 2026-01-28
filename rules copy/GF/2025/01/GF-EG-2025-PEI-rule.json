@@ -1,0 +1,297 @@
+{
+    "ruleset_id": "c97fcc30-f982-4428-9513-7cd5e31cc128",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "GF EG Jan-Dec25 PLB.pdf",
+      "contract_window": { "start_date": "2025-01-01", "end_date": "2025-12-31" },
+      "currency": ["EGP"],
+      "location": "Egypt (POS EG)",
+      "iata_codes": ["9022273"],
+      "countries": ["EG"],
+      "airlines": ["Gulf Air"],
+      "airline_codes": ["GF"],
+      "number_of_mtp": 3,
+      "discovery_notes": "Three incentives: All Cabin, Premium, and NDC Bonus. Trigger/payout on FLOWN. Evaluation on (BASE+YQ) for payout; YR counted in trigger text but excluded from payout. Incremental slabs; capping applies to All Cabin and NDC Bonus as per timing clause; Premium excluded from capping."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "c97fcc30-f982-4428-9513-7cd5e31cc128_MTP1",
+        "name": "All Cabin – Flown Revenue Slabs (Incremental)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ","YR"],
+            "formula": "Trigger on flown payment revenue (BASE + YQ + YR), taxes/fees excluded.",
+            "capping": { "enabled": true, "value": "Capping applies when max slab reached before agreement expiry." }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "payout_amount = tier_percent * (BASE + YQ)",
+            "expected_percent_range": { "min": 2.0, "max": 7.0, "logic": "Per All Cabin tier table" },
+            "capping": { "enabled": true, "value": "For 12M term: cap applies 3 months before expiry; for <12M: 2 months." }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Cabin": ["All Cabin"],
+            "POS": ["EG"],
+            "Travel Date": "2025-01-01 to 2025-12-31",
+            "Marketing Airline": ["GF"]
+          },
+          "OUT": {},
+          "SILENT": {
+            "RBD": ["ANY"],
+            "Sales Date": ["ANY"],
+            "Ticketing Airline": ["ANY"],
+            "Operating Airline": ["ANY"],
+            "Code Share": ["ANY"],
+            "Dom/Intl": ["ANY"],
+            "Fare Type": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Marketing Airline": ["GF"],
+            "POS": ["EG"],
+            "Travel Date": "2025-01-01 to 2025-12-31"
+          },
+          "OUT": {
+            "Items Excluded": ["Taxes/fees","EMD"],
+            "Components Excluded": ["YR for payout"]
+          },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "All Cabin – Target Revenue Thresholds (EGP)",
+            "table_filter": { "key": "Cabin", "value": "All Cabin" },
+            "rows": [
+              { "metric": "Net Flown Revenue", "target": { "min": 11499076, "max": 12498994 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue", "target": { "min": 12498995, "max": 13998874 }, "payout": { "value": 4.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue", "target": { "min": 13998875, "max": 15998713 }, "payout": { "value": 5.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue", "target": { "min": 15998714, "max": 16998634 }, "payout": { "value": 7.0, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "All Cabin – Target Revenue Thresholds (EGP)",
+                "metric": "Net Flown Revenue",
+                "respect_capping": true,
+                "cap_rule": "For 12M term: cap applies 3 months before expiry; for <12M: 2 months."
+              },
+              "output": { "field": "payout_amount", "unit": "EGP", "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE + YQ)" }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": true, "value": "Capping as per clause", "notes": "Capping kicks in once maximum slab is reached before agreement expiry (3 months for 12M, 2 months for <12M)." },
+          "performance_guards": [
+            "Corporate Deals (At Source) IN/IN; Back-End IN/OUT.",
+            "Taxes/fees/EMD OUT; YQ IN; YR OUT for payout."
+          ]
+        }
+      },
+  
+      {
+        "rule_id": "c97fcc30-f982-4428-9513-7cd5e31cc128_MTP2",
+        "name": "Premium – Flown Revenue Slabs (Incremental, No Capping)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ","YR"],
+            "formula": "Trigger on flown payment revenue (BASE + YQ + YR).",
+            "capping": { "enabled": false, "value": 0 }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "payout_amount = tier_percent * (BASE + YQ)",
+            "expected_percent_range": { "min": 2.0, "max": 6.0, "logic": "Per Premium tier table" },
+            "capping": { "enabled": false, "value": 0 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": { "Cabin": ["Premium"], "POS": ["EG"], "Travel Date": "2025-01-01 to 2025-12-31", "Marketing Airline": ["GF"] },
+          "OUT": {},
+          "SILENT": { "RBD": ["ANY"], "Sales Date": ["ANY"] }
+        },
+  
+        "where_payout": {
+          "IN": { "Cabin": ["Premium"], "Marketing Airline": ["GF"], "POS": ["EG"] },
+          "OUT": { "Components Excluded": ["YR for payout","Taxes/fees","EMD"] },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Premium – Target Revenue Thresholds (EGP)",
+            "table_filter": { "key": "Cabin", "value": "Premium" },
+            "rows": [
+              { "metric": "Net Flown Revenue", "target": { "min": 654555, "max": 709100 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue", "target": { "min": 709101, "max": 818193 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue", "target": { "min": 818194, "max": 1090924 }, "payout": { "value": 4.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue", "target": { "min": 1090925, "max": "INF" }, "payout": { "value": 6.0, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": { "slab_table": "Premium – Target Revenue Thresholds (EGP)", "metric": "Net Flown Revenue", "respect_capping": false },
+              "output": { "field": "payout_amount", "unit": "EGP", "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE + YQ)" }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": false, "value": 0, "notes": "Premium targets are excluded from capping." },
+          "performance_guards": [ "Same inclusion/exclusion as All Cabin; payout calculated on (BASE + YQ) only." ]
+        }
+      },
+  
+      {
+        "rule_id": "c97fcc30-f982-4428-9513-7cd5e31cc128_MTP3",
+        "name": "NDC Bonus – Additional 1% upon Target Achievement",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": true,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": true,
+          "Combination_detail": "Adds on top of All Cabin/Premium payout when target achieved"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "NDC bookings only; bonus applies if agent achieves target.",
+            "capping": { "enabled": true, "value": "Same capping timing as All Cabin when max slab reached early." }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "FIXED",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "payout_amount = 0.01 * (BASE + YQ)",
+            "expected_percent_range": { "min": 1.0, "max": 1.0, "logic": "Flat 1% on NDC flown" },
+            "capping": { "enabled": true, "value": "Aligned to All Cabin capping timing" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": { "Cabin": ["All Cabin"], "POS": ["EG"], "Travel Date": "2025-01-01 to 2025-12-31", "Marketing Airline": ["GF"], "NDC": [true] },
+          "OUT": {},
+          "SILENT": { "Sales Date": ["ANY"] }
+        },
+  
+        "where_payout": {
+          "IN": { "NDC": [true], "Marketing Airline": ["GF"] },
+          "OUT": {},
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "NDC Bonus",
+            "table_filter": { "key": "Booking Channel", "value": "NDC" },
+            "rows": [
+              { "metric": "Target Achieved (Yes/No)", "target": { "min": 1, "max": "INF" }, "payout": { "value": 1.0, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "FIXED", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ"] },
+          "actions": [
+            {
+              "action": "CHECK_TARGET_ACHIEVED",
+              "inputs": { "reference_rules": ["c97fcc30-f982-4428-9513-7cd5e31cc128_MTP1","c97fcc30-f982-4428-9513-7cd5e31cc128_MTP2"], "logic": "TRUE if any referenced rule has achieved an eligible slab" },
+              "output": { "field": "target_ok", "unit": "BOOLEAN", "explanation": "Bonus applies only when target is achieved." }
+            },
+            {
+              "action": "APPLY_FLAT_PERCENT_IF",
+              "when": { "all": [{ "field": "target_ok", "op": "==", "value": true }] },
+              "inputs": { "flat_percent": 1.0, "base_metric": "Net Flown Revenue" },
+              "output": { "field": "payout_amount", "unit": "EGP", "explanation": "payout_amount = 0.01 * (BASE + YQ)" }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": true, "value": "Capping as per clause", "notes": "NDC bonus subject to same capping timing as All Cabin once max slab is reached early." },
+          "performance_guards": [ "Bonus applies only on eligible NDC flown revenue once target is achieved." ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": true, "threshold": "NDC=true (channel filter)" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-28",
+      "rule_update_date": "2025-09-28",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+  

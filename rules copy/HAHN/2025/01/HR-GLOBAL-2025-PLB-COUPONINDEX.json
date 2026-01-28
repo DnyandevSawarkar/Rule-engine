@@ -1,0 +1,166 @@
+{
+  "ruleset_id": "33ed5bed-8426-480b-93be-8166737eef59",
+  "version": "1.0",
+  "metadata": {
+    "source_name": "HAHN AIR 2025 AGREMENT.pdf",
+    "contract_window": { "start_date": "2025-01-01", "end_date": "2025-12-31" },
+    "currency": "EUR",
+    "location": "Global (POS list per contract)",
+    "iata_codes": ["39200814","24210583","14366505","14319012","86214811","43211711","35308733","49200760","20265895","54210310","14319023","72210224","86211204","72325116","88200431","15333776","20315164","85209891","84209926","58209863","51211156","93200030","93209922","54271571","54200274","71236465","57562271","32308205","87200481","92232593","16209896","12210026","10210281","13200806","90222731","18210850","21209963","41200600","48200051","61200042","52200105","56210254","77250364","59202253","12261056","77200465","79211904","83200795","89210214","68200101","67210765","14315254","22209961","29210086","28209882","69633476","74200070","62211251","65200671","6300206","91200922","40218360","10200864","1320910","59212893","42294566","78271395","05200134","65321966","77251171","48200110","61200171","57595930","12200112","11200022","54480042","10200120","15010660","28334865","44200052","37315552","08262030"],
+    "countries": ["CI","GH","IN","AE","LB","TH","ML","FR","MA","SN","UA","TR","ID","MY","TG","TD","NE","MR","BF","BJ","SA","BR","SG","TN","RU","NG","BI","CM","CG","EG","ET","GA","KE","MG","MW","MU","MZ","NA","RW","ZA","SD","TZ","UG","ZW","ZM","GM","GN","GW","CV","SL","OM","QA","KH","UK","JO","CD","KW","ES","AO","KZ","CF","BE","PH","LR","VN"],
+    "airlines": ["Hahn Air Lines GmbH"],
+    "airline_codes": ["HR"],
+    "number_of_mtp": 1,
+    "discovery_notes": "Incentive on net fare (BASE only) for each HR (169) flown coupon in 2025. Tiering based on 2025 flown-coupon achievement vs 2024 baseline (23,973). HR may exclude specific interlining partners with 14 days’ notice."
+  },
+
+  "rules": [
+    {
+      "rule_id": "33ed5bed-8426-480b-93be-8166737eef59_MTP1",
+      "name": "Hahn Air 2025 Coupon-Based PLB (Global)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": false,
+        "Coupon Count": true,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+        "trigger": {
+          "type": "FLOWN",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE"],
+          "formula": "payout_eligibility_index = (flown_coupons_2025 / 23973) * 100",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "DIFFERENTIAL",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE"],
+          "formula": "payout_amount = tier_percent * BASE",
+          "expected_percent_range": { "min": 0.8, "max": 1.2, "logic": "Per coupon-achievement tiers" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+
+      "where_trigger": {
+        "IN": {
+          "POS": ["CI","GH","IN","AE","LB","TH","ML","FR","MA","SN","UA","TR","ID","MY","TG","TD","NE","MR","BF","BJ","SA","BR","SG","TN","RU","NG","BI","CM","CG","EG","ET","GA","KE","MG","MW","MU","MZ","NA","RW","ZA","SD","TZ","UG","ZW","ZM","GM","GN","GW","CV","SL","OM","QA","KH","UK","JO","CD","KW","ES","AO","KZ","CF","BE","PH","LR","VN"],
+          "Sales Date": "2025-01-01 to 2025-12-31",
+          "Travel Date": "2025-01-01 to 2025-12-31",
+          "Marketing Airline": ["HR"],
+          "Ticketing Airline": ["HR"]
+        },
+        "OUT": {
+          "Other": ["Coupons using interlining partners explicitly excluded by HR during term (14-day notice)"]
+        },
+        "SILENT": {
+          "Cabin": ["ALL"],
+          "RBD": ["ALL"],
+          "Fare Type": ["ALL"],
+          "Route": ["ALL"],
+          "O&D": ["ALL"],
+          "Flight Nos": ["ALL"],
+          "Corporate Code": ["NONE"],
+          "Tour Code": ["NONE"],
+          "City Codes": ["ALL"],
+          "NDC": ["NONE"],
+          "Interline": ["ALLOW unless specifically excluded"],
+          "Code Share": ["NONE"]
+        }
+      },
+
+      "where_payout": {
+        "IN": {
+          "Marketing Airline": ["HR"],
+          "Ticketing Airline": ["HR"]
+        },
+        "OUT": {
+          "Other": ["Refunded or reissued coupons"]
+        }
+      },
+
+      "tiers": [
+        {
+          "table_label": "Flown Coupon Achievement vs 2024 Baseline (23,973)",
+          "table_filter": { "key": "NONE", "value": [] },
+          "rows": [
+            { "metric": "Coupon Count Achievement (%)", "target": { "min": 90,  "max": 99 },  "payout": { "value": 0.8, "unit": "PERCENT" } },
+            { "metric": "Coupon Count Achievement (%)", "target": { "min": 100, "max": 109 }, "payout": { "value": 0.9, "unit": "PERCENT" } },
+            { "metric": "Coupon Count Achievement (%)", "target": { "min": 110, "max": 119 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+            { "metric": "Coupon Count Achievement (%)", "target": { "min": 120, "max": 129 }, "payout": { "value": 1.1, "unit": "PERCENT" } },
+            { "metric": "Coupon Count Achievement (%)", "target": { "min": 130, "max": "INF" }, "payout": { "value": 1.2, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+
+      "then": {
+        "evaluation": {
+          "basis": "DIFFERENTIAL",
+          "measure_name": "Net Flown Revenue",
+          "apply_components": ["BASE"],
+          "period_level_notes": "Determine a single period tier from coupon-achievement %, then apply that tier% to each eligible coupon BASE."
+        },
+        "actions": [
+          {
+            "action": "COMPUTE_PERIOD_TIER",
+            "inputs": {
+              "slab_table": "Flown Coupon Achievement vs 2024 Baseline (23,973)",
+              "metric": "Coupon Count Achievement (%)",
+              "achievement_percent_field": "payout_eligibility_index",
+              "blp_value": 23973,
+              "blp_required": true
+            },
+            "output": {
+              "field": "period_tier_percent",
+              "unit": "PERCENT",
+              "explanation": "Map 2025 coupon achievement % vs 23,973 baseline to a single tier percent."
+            }
+          },
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "metric": "Net Flown Revenue",
+              "period_slab_field": "period_tier_percent",
+              "respect_capping": false
+            },
+            "output": {
+              "field": "payout_amount_per_coupon",
+              "unit": "EUR",
+              "explanation": "payout_amount = tier_percent * BASE"
+            }
+          }
+        ]
+      },
+
+      "guards": {
+        "contract_cap": { "enabled": false, "value": 0, "notes": "" },
+        "performance_guards": [
+          "Refunded and reissued coupons are not incentivized.",
+          "HR may exclude certain interlining partners during the term with 14 days’ notice."
+        ]
+      }
+    }
+  ],
+
+  "metric_eligibility": {
+    "NDC share": { "applies": false, "threshold": "NONE" },
+    "Year on year growth": { "applies": false, "threshold": "NONE" },
+    "Period over period growth": { "applies": false, "threshold": "NONE" },
+    "Simple slab": { "applies": true }
+  },
+
+  "rule_mgmt": {
+    "rule_creation_date": "2025-09-28",
+    "rule_update_date": "2025-09-28",
+    "rule_active_status": "ACTIVE"
+  }
+}

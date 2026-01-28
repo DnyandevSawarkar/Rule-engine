@@ -1,0 +1,242 @@
+{
+    "ruleset_id": "6e818764-6688-478d-b535-86ba1ca171e2",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "AIR COTE D IVOIRE Feb25-Dec25 PLB.pdf",
+      "contract_window": { "start_date": "2025-02-01", "end_date": "2025-12-31" },
+      "currency": ["XOF"],
+      "location": "Libreville, Gabon (POS GA)",
+      "iata_codes": ["21209963"],
+      "countries": ["GA","CI"],
+      "airlines": ["Air Côte d’Ivoire"],
+      "airline_codes": ["HF"],
+      "number_of_mtp": 2,
+      "discovery_notes": "Monthly, sales-based (BASE only) free ticket program post-BSP. Differential computation: base 2 tickets from 60,000,000 XOF; +1 ticket per additional 15,000,000 XOF. Extra route market-share ticket if ≥40% on LBV↔BKO & LBV↔DSS and revenue criterion met."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "6e818764-6688-478d-b535-86ba1ca171e2_MTP1",
+        "name": "Monthly Free Tickets by Net Sales (tax excluded)",
+        "type": "Single Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": true,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": false,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-02-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "SALES",
+            "measure": ["Net Sales"],
+            "components": ["BASE"],
+            "formula": "NetSales = BASE recorded in BSP (taxes excluded) attributable to HF",
+            "capping": { "enabled": false, "value": 0 }
+          },
+          "payout": {
+            "type": "FREE_TICKETS",
+            "computation": "DIFFERENTIAL",
+            "measure": ["Net Sales"],
+            "components": ["BASE"],
+            "formula": "payout_tickets = base_tickets + incremental_tickets",
+            "expected_percent_range": { "min": "", "max": "", "logic": "Outputs count of free tickets" },
+            "capping": { "enabled": false, "value": 0 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "POS": ["GA"],
+            "Sales Date": "2025-02-01 to 2025-12-31",
+            "Marketing Airline": ["HF"],
+            "Ticketing Airline": ["HF"]
+          },
+          "OUT": {},
+          "SILENT": {
+            "Cabin": ["ANY"],
+            "RBD": ["ANY"],
+            "Fare Type": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Travel Date": ["ANY"]
+          }
+        },
+  
+        "where_payout": { "IN": {}, "OUT": {}, "SILENT": {} },
+  
+        "tiers": [
+          {
+            "table_label": "Monthly Net Sales (tax excluded) → Free Tickets",
+            "table_filter": { "key": "NONE", "value": [] },
+            "rows": [
+              { "metric": "Net Sales (XOF)", "target": { "min": 60000000, "max": "INF" }, "payout": { "value": 2, "unit": "FREE_TICKETS" } }
+            ]
+          },
+          {
+            "table_label": "Increment per Additional Turnover",
+            "table_filter": { "key": "NONE", "value": [] },
+            "rows": [
+              { "metric": "Each additional tranche above 60,000,000 XOF", "target": { "min": 15000000, "max": "INF" }, "payout": { "value": 1, "unit": "FREE_TICKETS" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": {
+            "basis": "DIFFERENTIAL",
+            "measure_name": "Net Sales",
+            "apply_components": ["BASE"],
+            "period_level_notes": "Monthly evaluation post-BSP close."
+          },
+          "actions": [
+            {
+              "action": "COMPUTE_BASE_TICKETS",
+              "inputs": { "threshold_xof": 60000000, "tickets_if_met": 2, "metric_field": "NetSalesXOF" },
+              "output": { "field": "base_tickets", "unit": "FREE_TICKETS", "explanation": "If NetSales≥60,000,000 XOF then base_tickets=2 else 0." }
+            },
+            {
+              "action": "COMPUTE_INCREMENTAL_TICKETS",
+              "inputs": { "start_threshold_xof": 60000000, "increment_step_xof": 15000000, "metric_field": "NetSalesXOF" },
+              "output": { "field": "incremental_tickets", "unit": "FREE_TICKETS", "explanation": "incremental_tickets = floor(max(NetSales−60,000,000,0)/15,000,000)." }
+            },
+            {
+              "action": "SUM_TICKETS",
+              "inputs": { "fields": ["base_tickets","incremental_tickets"] },
+              "output": { "field": "payout_tickets", "unit": "FREE_TICKETS", "explanation": "payout_tickets = base_tickets + incremental_tickets." }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": false, "value": 0, "notes": "" },
+          "performance_guards": [
+            "Free tickets offered monthly post-BSP; request must be submitted by contract signatory.",
+            "Taxes to be paid by passenger; booking in Y; ticket validity 3 months.",
+            "HF-only; quota month’s tickets to be used within the next two months."
+          ]
+        }
+      },
+  
+      {
+        "rule_id": "6e818764-6688-478d-b535-86ba1ca171e2_MTP2",
+        "name": "Additional Free Ticket by Route Market Share (BKO & DSS average)",
+        "type": "Single Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": true,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": false,
+          "Combination": true,
+          "Combination_detail": "Depends on Rule MTP1 revenue criterion"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-02-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "SALES",
+            "measure": ["Net Sales","Market Share (%)"],
+            "components": ["BASE"],
+            "formula": "Average market share across LBV↔BKO and LBV↔DSS for the month",
+            "capping": { "enabled": false, "value": 0 }
+          },
+          "payout": {
+            "type": "FREE_TICKETS",
+            "computation": "DIFFERENTIAL",
+            "measure": ["Net Sales"],
+            "components": ["BASE"],
+            "formula": "payout_tickets = 1",
+            "expected_percent_range": { "min": "", "max": "", "logic": "Outputs 1 extra ticket if conditions met" },
+            "capping": { "enabled": false, "value": 0 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Routes": ["LBV↔BKO","LBV↔DSS"],
+            "City Codes": ["LBV","BKO","DSS"],
+            "POS": ["GA"],
+            "Sales Date": "2025-02-01 to 2025-12-31",
+            "Marketing Airline": ["HF"],
+            "Ticketing Airline": ["HF"]
+          },
+          "OUT": {},
+          "SILENT": {
+            "Cabin": ["ANY"],
+            "RBD": ["ANY"],
+            "Fare Type": ["ANY"]
+          }
+        },
+  
+        "where_payout": { "IN": {}, "OUT": {}, "SILENT": {} },
+  
+        "tiers": [
+          {
+            "table_label": "Average Market Share on BKO & DSS",
+            "table_filter": { "key": "Routes", "value": ["LBV↔BKO","LBV↔DSS"] },
+            "rows": [
+              { "metric": "Market Share (%)", "target": { "min": 40, "max": "INF" }, "payout": { "value": 1, "unit": "FREE_TICKETS" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": {
+            "basis": "DIFFERENTIAL",
+            "measure_name": "Net Sales",
+            "apply_components": ["BASE"],
+            "period_level_notes": "Eligibility only if revenue criterion from MTP1 is achieved in the same month."
+          },
+          "actions": [
+            {
+              "action": "CHECK_REVENUE_CRITERION",
+              "inputs": { "metric_field": "NetSalesXOF", "threshold_xof": 60000000 },
+              "output": { "field": "rev_ok", "unit": "BOOLEAN", "explanation": "True if monthly NetSales≥60,000,000 XOF (MTP1 criterion)." }
+            },
+            {
+              "action": "CHECK_AVG_MARKET_SHARE",
+              "inputs": { "share_fields": ["market_share_LBV_BKO","market_share_LBV_DSS"], "min_avg_percent": 40 },
+              "output": { "field": "ms_ok", "unit": "BOOLEAN", "explanation": "True if average of route shares ≥40%." }
+            },
+            {
+              "action": "GRANT_EXTRA_TICKET",
+              "when": { "all": [{ "field": "rev_ok", "op": "==", "value": true }, { "field": "ms_ok", "op": "==", "value": true }] },
+              "inputs": { "tickets": 1 },
+              "output": { "field": "payout_tickets", "unit": "FREE_TICKETS", "explanation": "payout_tickets = 1" }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": false, "value": 0, "notes": "" },
+          "performance_guards": [
+            "Extra ticket granted only if the monthly revenue target in MTP1 is achieved."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-28",
+      "rule_update_date": "2025-09-28",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+  

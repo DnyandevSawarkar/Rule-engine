@@ -1,0 +1,591 @@
+{
+  "ruleset_id": "AFKL-TZ-2025-Q1_RULESET",
+  "version": "2.0",
+  "metadata": {
+    "source_name": "AFKL_TZ_Jan25-Dec25.pdf",
+    "contract_window": { "start_date": "2025-01-01", "end_date": "2025-03-31" },
+    "currency": ["USD"],
+    "location": "Tanzania (POS TZ; POO TZ to ALL)",
+    "iata_codes": ["83200795"],
+    "countries": ["Tanzania"],
+    "airlines": ["Air France", "KLM"],
+    "airline_codes": ["AF", "KL"],
+    "number_of_mtp": 4,
+    "discovery_notes": "YoY growth incentive on Sold Revenue (BASE + YR). YR/YRF treated identically. YQ, taxes, SAF, commissions excluded. Only Q1 Exhibit provided; no assumptions beyond defined Reference Period."
+  },
+
+  "rules": [
+    {
+      "rule_id": "AFKL-TZ-2025-Q1_RULESET_MTP1",
+      "name": "Q1 Growth - Economy Light (Incremental on Sold, BASE+YR)",
+      "type": "Multi Tier Metric TABLE",
+
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+
+      "blp": {
+        "applies": true,
+        "value": "PY Sold Revenue for same quarter in 2024",
+        "notes": "Baseline defined as previous-year same-quarter Sold Revenue."
+      },
+
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+
+        "trigger": {
+          "type": "SALES",
+          "measure": ["YoY Growth %"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F003",
+          "capping": { "enabled": true, "value": "4170" }
+        },
+
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Sold Revenue"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F007",
+          "expected_percent_range": {
+            "min": 0.7,
+            "max": 1.75,
+            "logic": "Percent values are percentage points (e.g. 1.25 = 1.25%)."
+          },
+          "capping": { "enabled": true, "value": "4170" }
+        }
+      },
+
+      "where_trigger": {
+        "IN": {
+          "Cabin": ["Economy Light"],
+          "POS": ["TZ"],
+          "POO": ["TZ"],
+          "Marketing_Airline": ["AF", "KL"],
+          "Operating_Airline": ["AF", "KL", "DL", "KQ", "HV"],
+          "Ticketing_Airline": ["AF-057", "KL-074"],
+          "Sales_Date": { "start": "2025-01-01", "end": "2025-03-31" },
+          "Travel_Date": { "start": "2025-01-01", "end": "2025-03-31" }
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT",
+            "Commissions OUT",
+            "ADMs/ACMs OUT",
+            "Ancillaries OUT",
+            "Infant/free tickets OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "where_payout": {
+        "IN": {
+          "Cabin": ["Economy Light"],
+          "POS": ["TZ"],
+          "POO": ["TZ"]
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "tiers": [
+        {
+          "table_label": "Q1 YoY Growth - Economy Light",
+          "table_filter": { "key": "Traffic Area", "value": ["From POO TZ to ALL"] },
+          "rows": [
+            { "metric": "YoY Growth %", "target": { "min": 101, "max": 110 }, "payout": { "value": 0.7, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 110, "max": 120 }, "payout": { "value": 1.23, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 120, "max": 130 }, "payout": { "value": 1.75, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+
+      "then": {
+        "evaluation": {
+          "basis": "INCREMENTAL",
+          "measure_name": "Sold Revenue",
+          "apply_components": ["BASE", "YR"],
+          "formula_key": "F007"
+        },
+        "actions": [
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "slab_table": "Q1 YoY Growth - Economy Light",
+              "metric": "YoY Growth %",
+              "respect_capping": true,
+              "cap_value": "4170"
+            },
+            "output": {
+              "field": "payout_amount",
+              "unit": "USD",
+              "explanation": "Apply payout formula key F007 with INCREMENTAL computation on eligible Sold Revenue (BASE + YR), respecting cap."
+            }
+          }
+        ]
+      },
+
+      "guards": {
+        "contract_cap": {
+          "enabled": true,
+          "value": "4170",
+          "notes": "Maximum incentive amount per cabin for the Reference Period."
+        },
+        "performance_guards": [
+          "Only Q1 Reference Period applies",
+          "Traffic restricted to POO TZ"
+        ]
+      }
+    },
+
+    {
+      "rule_id": "AFKL-TZ-2025-Q1_RULESET_MTP2",
+      "name": "Q1 Growth - Economy non-Light (Incremental on Sold, BASE+YR)",
+      "type": "Multi Tier Metric TABLE",
+
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+
+      "blp": {
+        "applies": true,
+        "value": "PY Sold Revenue for same quarter in 2024",
+        "notes": "Baseline defined as previous-year same-quarter Sold Revenue."
+      },
+
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+
+        "trigger": {
+          "type": "SALES",
+          "measure": ["YoY Growth %"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F003",
+          "capping": { "enabled": true, "value": "2767" }
+        },
+
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Sold Revenue"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F007",
+          "expected_percent_range": {
+            "min": 1.0,
+            "max": 3.0,
+            "logic": "Percent values are percentage points (e.g. 1.25 = 1.25%)."
+          },
+          "capping": { "enabled": true, "value": "2767" }
+        }
+      },
+
+      "where_trigger": {
+        "IN": {
+          "Cabin": ["Economy non-Light"],
+          "POS": ["TZ"],
+          "POO": ["TZ"],
+          "Marketing_Airline": ["AF", "KL"],
+          "Operating_Airline": ["AF", "KL", "DL", "KQ", "HV"],
+          "Ticketing_Airline": ["AF-057", "KL-074"],
+          "Sales_Date": { "start": "2025-01-01", "end": "2025-03-31" },
+          "Travel_Date": { "start": "2025-01-01", "end": "2025-03-31" }
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT",
+            "Commissions OUT",
+            "ADMs/ACMs OUT",
+            "Ancillaries OUT",
+            "Infant/free tickets OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "where_payout": {
+        "IN": {
+          "Cabin": ["Economy non-Light"],
+          "POS": ["TZ"],
+          "POO": ["TZ"]
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "tiers": [
+        {
+          "table_label": "Q1 YoY Growth - Economy non-Light",
+          "table_filter": { "key": "Traffic Area", "value": ["From POO TZ to ALL"] },
+          "rows": [
+            { "metric": "YoY Growth %", "target": { "min": 101, "max": 110 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 110, "max": 120 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 120, "max": 130 }, "payout": { "value": 3.0, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+
+      "then": {
+        "evaluation": {
+          "basis": "INCREMENTAL",
+          "measure_name": "Sold Revenue",
+          "apply_components": ["BASE", "YR"],
+          "formula_key": "F007"
+        },
+        "actions": [
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "slab_table": "Q1 YoY Growth - Economy non-Light",
+              "metric": "YoY Growth %",
+              "respect_capping": true,
+              "cap_value": "2767"
+            },
+            "output": {
+              "field": "payout_amount",
+              "unit": "USD",
+              "explanation": "Apply payout formula key F007 with INCREMENTAL computation on eligible Sold Revenue (BASE + YR), respecting cap."
+            }
+          }
+        ]
+      },
+
+      "guards": {
+        "contract_cap": {
+          "enabled": true,
+          "value": "2767",
+          "notes": "Maximum incentive amount per cabin for the Reference Period."
+        },
+        "performance_guards": [
+          "Only Q1 Reference Period applies",
+          "Traffic restricted to POO TZ"
+        ]
+      }
+    },
+
+    {
+      "rule_id": "AFKL-TZ-2025-Q1_RULESET_MTP3",
+      "name": "Q1 Growth - Premium Economy (Incremental on Sold, BASE+YR)",
+      "type": "Multi Tier Metric TABLE",
+
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+
+      "blp": {
+        "applies": true,
+        "value": "PY Sold Revenue for same quarter in 2024",
+        "notes": "Baseline defined as previous-year same-quarter Sold Revenue."
+      },
+
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+
+        "trigger": {
+          "type": "SALES",
+          "measure": ["YoY Growth %"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F003",
+          "capping": { "enabled": true, "value": "253" }
+        },
+
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Sold Revenue"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F007",
+          "expected_percent_range": {
+            "min": 1.0,
+            "max": 3.0,
+            "logic": "Percent values are percentage points (e.g. 1.25 = 1.25%)."
+          },
+          "capping": { "enabled": true, "value": "253" }
+        }
+      },
+
+      "where_trigger": {
+        "IN": {
+          "Cabin": ["Premium Economy"],
+          "POS": ["TZ"],
+          "POO": ["TZ"],
+          "Marketing_Airline": ["AF", "KL"],
+          "Operating_Airline": ["AF", "KL", "DL", "KQ", "HV"],
+          "Ticketing_Airline": ["AF-057", "KL-074"],
+          "Sales_Date": { "start": "2025-01-01", "end": "2025-03-31" },
+          "Travel_Date": { "start": "2025-01-01", "end": "2025-03-31" }
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT",
+            "Commissions OUT",
+            "ADMs/ACMs OUT",
+            "Ancillaries OUT",
+            "Infant/free tickets OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "where_payout": {
+        "IN": {
+          "Cabin": ["Premium Economy"],
+          "POS": ["TZ"],
+          "POO": ["TZ"]
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "tiers": [
+        {
+          "table_label": "Q1 YoY Growth - Premium Economy",
+          "table_filter": { "key": "Traffic Area", "value": ["From POO TZ to ALL"] },
+          "rows": [
+            { "metric": "YoY Growth %", "target": { "min": 101, "max": 110 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 110, "max": 120 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 120, "max": 130 }, "payout": { "value": 3.0, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+
+      "then": {
+        "evaluation": {
+          "basis": "INCREMENTAL",
+          "measure_name": "Sold Revenue",
+          "apply_components": ["BASE", "YR"],
+          "formula_key": "F007"
+        },
+        "actions": [
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "slab_table": "Q1 YoY Growth - Premium Economy",
+              "metric": "YoY Growth %",
+              "respect_capping": true,
+              "cap_value": "253"
+            },
+            "output": {
+              "field": "payout_amount",
+              "unit": "USD",
+              "explanation": "Apply payout formula key F007 with INCREMENTAL computation on eligible Sold Revenue (BASE + YR), respecting cap."
+            }
+          }
+        ]
+      },
+
+      "guards": {
+        "contract_cap": {
+          "enabled": true,
+          "value": "253",
+          "notes": "Maximum incentive amount per cabin for the Reference Period."
+        },
+        "performance_guards": [
+          "Only Q1 Reference Period applies",
+          "Traffic restricted to POO TZ"
+        ]
+      }
+    },
+
+    {
+      "rule_id": "AFKL-TZ-2025-Q1_RULESET_MTP4",
+      "name": "Q1 Growth - Business (Incremental on Sold, BASE+YR)",
+      "type": "Multi Tier Metric TABLE",
+
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+
+      "blp": {
+        "applies": true,
+        "value": "PY Sold Revenue for same quarter in 2024",
+        "notes": "Baseline defined as previous-year same-quarter Sold Revenue."
+      },
+
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+
+        "trigger": {
+          "type": "SALES",
+          "measure": ["YoY Growth %"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F003",
+          "capping": { "enabled": true, "value": "2896" }
+        },
+
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Sold Revenue"],
+          "components": ["BASE", "YR"],
+          "formula_key": "F007",
+          "expected_percent_range": {
+            "min": 1.0,
+            "max": 3.0,
+            "logic": "Percent values are percentage points (e.g. 1.25 = 1.25%)."
+          },
+          "capping": { "enabled": true, "value": "2896" }
+        }
+      },
+
+      "where_trigger": {
+        "IN": {
+          "Cabin": ["Business"],
+          "POS": ["TZ"],
+          "POO": ["TZ"],
+          "Marketing_Airline": ["AF", "KL"],
+          "Operating_Airline": ["AF", "KL", "DL", "KQ", "HV"],
+          "Ticketing_Airline": ["AF-057", "KL-074"],
+          "Sales_Date": { "start": "2025-01-01", "end": "2025-03-31" },
+          "Travel_Date": { "start": "2025-01-01", "end": "2025-03-31" }
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT",
+            "Commissions OUT",
+            "ADMs/ACMs OUT",
+            "Ancillaries OUT",
+            "Infant/free tickets OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "where_payout": {
+        "IN": {
+          "Cabin": ["Business"],
+          "POS": ["TZ"],
+          "POO": ["TZ"]
+        },
+        "OUT": {
+          "Other": [
+            "YQ distribution surcharge OUT",
+            "Taxes and fees OUT",
+            "SAF contribution OUT"
+          ]
+        },
+        "SILENT": {}
+      },
+
+      "tiers": [
+        {
+          "table_label": "Q1 YoY Growth - Business",
+          "table_filter": { "key": "Traffic Area", "value": ["From POO TZ to ALL"] },
+          "rows": [
+            { "metric": "YoY Growth %", "target": { "min": 101, "max": 110 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 110, "max": 120 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+            { "metric": "YoY Growth %", "target": { "min": 120, "max": 130 }, "payout": { "value": 3.0, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+
+      "then": {
+        "evaluation": {
+          "basis": "INCREMENTAL",
+          "measure_name": "Sold Revenue",
+          "apply_components": ["BASE", "YR"],
+          "formula_key": "F007"
+        },
+        "actions": [
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "slab_table": "Q1 YoY Growth - Business",
+              "metric": "YoY Growth %",
+              "respect_capping": true,
+              "cap_value": "2896"
+            },
+            "output": {
+              "field": "payout_amount",
+              "unit": "USD",
+              "explanation": "Apply payout formula key F007 with INCREMENTAL computation on eligible Sold Revenue (BASE + YR), respecting cap."
+            }
+          }
+        ]
+      },
+
+      "guards": {
+        "contract_cap": {
+          "enabled": true,
+          "value": "2896",
+          "notes": "Maximum incentive amount per cabin for the Reference Period."
+        },
+        "performance_guards": [
+          "Only Q1 Reference Period applies",
+          "Traffic restricted to POO TZ"
+        ]
+      }
+    }
+  ],
+
+  "metric_eligibility": {
+    "NDC share": { "applies": false, "threshold": "" },
+    "Year on year growth": { "applies": true, "threshold": ">=101%" },
+    "Period over period growth": { "applies": false, "threshold": "" },
+    "Simple slab": { "applies": false }
+  },
+
+  "rule_mgmt": {
+    "rule_creation_date": "2026-01-07",
+    "rule_update_date": "2026-01-07",
+    "rule_active_status": "ACTIVE"
+  }
+}

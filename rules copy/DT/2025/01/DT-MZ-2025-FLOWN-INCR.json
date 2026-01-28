@@ -1,0 +1,157 @@
+{
+    "ruleset_id": "f6bae5cd-eb10-4507-9050-e0a3d11235f4",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "Taag MZN Jan25-Dec25 PLB.pdf",
+      "contract_window": { "start_date": "2025-01-01", "end_date": "2025-12-31" },
+      "currency": ["MZN"],
+      "location": "Mozambique (POS MZ)",
+      "iata_codes": ["56210254"],
+      "countries": ["MZ"],
+      "airlines": ["TAAG Angola Airlines"],
+      "airline_codes": ["DT"],
+      "number_of_mtp": 1,
+      "discovery_notes": "Incremental slabs on FLOWN revenue. Eligibility: DT-operated only, DT-118 ticket stock, POS MZ, promo fares OUT, other-airline coupons OUT even if DT plated. Payout on BASE+YQ. Cap at Tier 4."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "f6bae5cd-eb10-4507-9050-e0a3d11235f4_MTP1",
+        "name": "DT Mozambique 2025 – Incremental Flown Revenue (Cap at Tier 4)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "NRF = BASE + YQ on DT-operated coupons ticketed on DT-118; taxes/fees excluded; promo fares excluded from target.",
+            "capping": { "enabled": true, "value": "Tier 4 cap" }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YQ"],
+            "formula": "payout_amount = tier_percent * amount_in_slab_on(BASE + YQ)",
+            "expected_percent_range": { "min": 0.5, "max": 3.0, "logic": "As per tier ladder" },
+            "capping": { "enabled": true, "value": "Tier 4 maximum payout cap" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Cabin": ["All classes"],
+            "POS": ["MZ"],
+            "Sales Date": "2025-01-01 to 2025-12-31",
+            "Travel Date": "2025-01-01 to 2025-12-31",
+            "Marketing Airline": ["DT"],
+            "Operating Airline": ["DT"],
+            "Ticketing Airline": ["DT-118"],
+            "IATA Codes": ["56210254"]
+          },
+          "OUT": {
+            "Fare Type": ["Promo Fares"],
+            "Code Share": ["Coupons of other airlines (incl. codeshare/SPA) even if DT plated"]
+          },
+          "SILENT": {
+            "RBD": ["ANY"],
+            "Dom/Intl": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "POS": ["MZ"],
+            "Marketing Airline": ["DT"],
+            "Operating Airline": ["DT"],
+            "Ticketing Airline": ["DT-118"]
+          },
+          "OUT": {
+            "Fare Type": ["Promo Fares"],
+            "Code Share": ["Coupons of other airlines (incl. codeshare/SPA) even if DT plated"]
+          },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Flown Revenue Thresholds (Incremental) – Cap at Tier 4",
+            "table_filter": { "key": "Cabin", "value": ["All"] },
+            "rows": [
+              { "metric": "Net Flown Revenue (MZN)", "target": { "min": 29136699.49, "max": 32050369.44 }, "payout": { "value": 0.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (MZN)", "target": { "min": 32050369.45, "max": 33507204.41 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (MZN)", "target": { "min": 33507204.42, "max": 34964039.39 }, "payout": { "value": 1.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (MZN)", "target": { "min": 34964039.40, "max": 36420874.36 }, "payout": { "value": 2.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (MZN)", "target": { "min": 36420874.37, "max": "INF" }, "payout": { "value": 3.0, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "Flown Revenue Thresholds (Incremental) – Cap at Tier 4",
+                "metric": "Net Flown Revenue (MZN)",
+                "respect_capping": true,
+                "cap_rule": "Maximum incentive capped at Tier 4"
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "MZN",
+                "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE + YQ)"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "Cap at Tier 4",
+            "notes": "Maximum incentive payment will be capped at Tier 4."
+          },
+          "performance_guards": [
+            "If BSP suspension with outstanding payments, TAAG may retain accrued incentive to offset debts.",
+            "Agreement terminable by either party with 30 days’ notice.",
+            "Accrued incentive prorated to termination date if no breach."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-29",
+      "rule_update_date": "2025-09-29",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+  
+   
