@@ -2,6 +2,10 @@ build/*
 rules/*
 __pycache__
 *.txt
-*.csv
-*.zip
+
 contracts/*
+output/*
+mir_input.zip
+input/*
+MIR output/*
+MIR output copy/*
