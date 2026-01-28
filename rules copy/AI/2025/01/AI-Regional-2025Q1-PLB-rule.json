@@ -1,0 +1,265 @@
+{
+  "ruleset_id": "38fe6eb9-b3ed-4b8d-9146-159a71a354f6",
+  "version": "1.0",
+  "metadata": {
+    "source_name": "AI Regional 01JAN25 - 31MAR25 PLB.pdf",
+    "contract_window": { "start_date": "2025-01-01", "end_date": "2025-03-31" },
+    "currency": "USD",
+    "location": "BJ, CI, ZM, SN, ZA, TG",
+    "iata_codes": ["1620989","3920081","6721076","7221022","7720046","8520989"],
+    "countries": ["BJ","CI","ZM","SN","ZA","TG"],
+    "airlines": ["Air India"],
+    "airline_codes": ["AI"],
+    "number_of_mtp": 2,
+    "discovery_notes": "Two cabin-specific PLBs (Econ/PE and Biz/First). Trigger=Net Sales (Base+YQ+YR - refunds). Payout on Productivity (Base+YQ). Code share & interline excluded. Groups/Concessionary/S,T included for TARGET but excluded for PAYOUT."
+  },
+
+  "rules": [
+    {
+      "rule_id": "38fe6eb9-b3ed-4b8d-9146-159a71a354f6_MTP1",
+      "name": "Air India PLB – Economy & Premium Economy (Jan–Mar 2025)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+        "trigger": {
+          "type": "SALES",
+          "measure": ["Net Sales"],
+          "components": ["BASE","YQ","YR"],
+          "formula": "Net Sales = BASE + YQ + YR − Refunds; exclude Code Share & Interline",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Productivity (Flown Revenue)"],
+          "components": ["BASE","YQ"],
+          "formula": "payout_amount = slab_percent * (BASE+YQ)",
+          "expected_percent_range": { "min": 1.0, "max": 2.5, "logic": "Per Economy/PE table" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "Cabin": ["Economy","Premium Economy"],
+          "RBD": ["ALL (includes Group/Concessionary/S,T for TARGET)"],
+          "Dom/Intl": ["DOMESTIC","INTERNATIONAL"],
+          "POS": ["BJ","CI","ZM","SN","ZA","TG"],
+          "Sales Date": "2025-01-01 to 2025-03-31",
+          "Travel Date": "2025-01-01 to 2025-03-31",
+          "Marketing Airline": ["AI"],
+          "Ticketing Airline": ["AI"]
+        },
+        "OUT": {
+          "Code Share": true,
+          "Interline": true,
+          "Other": ["Air India Express codeshares"]
+        },
+        "SILENT": {
+          "Fare Type": ["ALL"],
+          "Route": ["NONE"],
+          "O&D": ["NONE"],
+          "Flight Nos": ["NONE"],
+          "Corporate Code": ["NONE"],
+          "Tour Code": ["NONE"],
+          "PCCs": ["NONE"],
+          "City Codes": ["NONE"],
+          "NDC": ["NONE"],
+          "Fare Class Logic": ["ALL"],
+          "Fare Basis Logic": ["ALL"]
+        }
+      },
+      "where_payout": {
+        "IN": {
+          "Cabin": ["Economy","Premium Economy"],
+          "Dom/Intl": ["DOMESTIC","INTERNATIONAL"],
+          "POS": ["BJ","CI","ZM","SN","ZA","TG"],
+          "Sales Date": "2025-01-01 to 2025-03-31",
+          "Travel Date": "2025-01-01 to 2025-03-31",
+          "Marketing Airline": ["AI"],
+          "Ticketing Airline": ["AI"]
+        },
+        "OUT": {
+          "Code Share": true,
+          "Interline": true,
+          "RBD": ["S","T"],
+          "Fare Type": ["Group Fares","Concessionary","Private"],
+          "Other": ["Air India Express codeshares"]
+        },
+        "SILENT": {
+          "RBD (otherwise)": ["ALL"],
+          "Fare Class Logic": ["ALL"],
+          "Fare Basis Logic": ["ALL"]
+        }
+      },
+      "tiers": [
+        {
+          "table_label": "Economy & Premium Economy",
+          "table_filter": { "key": "Cabin", "value": ["Economy","Premium Economy"] },
+          "rows": [
+            { "metric": "Net Sales", "target": { "min": 182909, "max": 202163 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+            { "metric": "Net Sales", "target": { "min": 202164, "max": 221417 }, "payout": { "value": 1.5, "unit": "PERCENT" } },
+            { "metric": "Net Sales", "target": { "min": 221418, "max": 240670 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+            { "metric": "Net Sales", "target": { "min": 240671, "max": 259924 }, "payout": { "value": 2.5, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": { "basis": "INCREMENTAL", "measure_name": "Productivity (Flown Revenue)", "apply_components": ["BASE","YQ"] },
+        "actions": [
+          {
+            "action": "CHECK_BASELINE",
+            "inputs": { "blp_value": 182909, "metric": "Net Sales" },
+            "output": { "field": "blp_met", "unit": "BOOLEAN", "explanation": "BLP must be met using TARGET metric (Net Sales)." }
+          },
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "when": { "all": [{ "field": "blp_met", "op": "==", "value": true }] },
+            "inputs": { "slab_table": "Economy & Premium Economy", "metric": "Net Sales", "respect_capping": false },
+            "output": { "field": "payout_amount", "unit": "USD", "explanation": "Apply incremental tiers on (BASE+YQ) for eligible coupons." }
+          }
+        ]
+      }
+    },
+
+    {
+      "rule_id": "38fe6eb9-b3ed-4b8d-9146-159a71a354f6_MTP2",
+      "name": "Air India PLB – Business & First (Jan–Mar 2025)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+        "trigger": {
+          "type": "SALES",
+          "measure": ["Net Sales"],
+          "components": ["BASE","YQ","YR"],
+          "formula": "Net Sales = BASE + YQ + YR − Refunds; exclude Code Share & Interline",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Productivity (Flown Revenue)"],
+          "components": ["BASE","YQ"],
+          "formula": "payout_amount = slab_percent * (BASE+YQ)",
+          "expected_percent_range": { "min": 2.0, "max": 3.5, "logic": "Per Business/First table" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "Cabin": ["Business","First"],
+          "RBD": ["ALL (includes Group/Concessionary/S,T for TARGET)"],
+          "Dom/Intl": ["DOMESTIC","INTERNATIONAL"],
+          "POS": ["BJ","CI","ZM","SN","ZA","TG"],
+          "Sales Date": "2025-01-01 to 2025-03-31",
+          "Travel Date": "2025-01-01 to 2025-03-31",
+          "Marketing Airline": ["AI"],
+          "Ticketing Airline": ["AI"]
+        },
+        "OUT": {
+          "Code Share": true,
+          "Interline": true,
+          "Other": ["Air India Express codeshares"]
+        },
+        "SILENT": {
+          "Fare Type": ["ALL"],
+          "Route": ["NONE"],
+          "O&D": ["NONE"],
+          "Flight Nos": ["NONE"],
+          "Corporate Code": ["NONE"],
+          "Tour Code": ["NONE"],
+          "PCCs": ["NONE"],
+          "City Codes": ["NONE"],
+          "NDC": ["NONE"],
+          "Fare Class Logic": ["ALL"],
+          "Fare Basis Logic": ["ALL"]
+        }
+      },
+      "where_payout": {
+        "IN": {
+          "Cabin": ["Business","First"],
+          "Dom/Intl": ["DOMESTIC","INTERNATIONAL"],
+          "POS": ["BJ","CI","ZM","SN","ZA","TG"],
+          "Sales Date": "2025-01-01 to 2025-03-31",
+          "Travel Date": "2025-01-01 to 2025-03-31",
+          "Marketing Airline": ["AI"],
+          "Ticketing Airline": ["AI"]
+        },
+        "OUT": {
+          "Code Share": true,
+          "Interline": true,
+          "RBD": ["S","T"],
+          "Fare Type": ["Group Fares","Concessionary","Private"],
+          "Other": ["Air India Express codeshares"]
+        },
+        "SILENT": {
+          "RBD (otherwise)": ["ALL"],
+          "Fare Class Logic": ["ALL"],
+          "Fare Basis Logic": ["ALL"]
+        }
+      },
+      "tiers": [
+        {
+          "table_label": "Business & First",
+          "table_filter": { "key": "Cabin", "value": ["Business","First"] },
+          "rows": [
+            { "metric": "Net Sales", "target": { "min": 90861, "max": 99947 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+            { "metric": "Net Sales", "target": { "min": 99948, "max": 109033 }, "payout": { "value": 2.5, "unit": "PERCENT" } },
+            { "metric": "Net Sales", "target": { "min": 109034, "max": 118119 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+            { "metric": "Net Sales", "target": { "min": 118120, "max": 127205 }, "payout": { "value": 3.5, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": { "basis": "INCREMENTAL", "measure_name": "Productivity (Flown Revenue)", "apply_components": ["BASE","YQ"] },
+        "actions": [
+          {
+            "action": "CHECK_BASELINE",
+            "inputs": { "blp_value": 90861, "metric": "Net Sales" },
+            "output": { "field": "blp_met", "unit": "BOOLEAN", "explanation": "BLP must be met using TARGET metric (Net Sales)." }
+          },
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "when": { "all": [{ "field": "blp_met", "op": "==", "value": true }] },
+            "inputs": { "slab_table": "Business & First", "metric": "Net Sales", "respect_capping": false },
+            "output": { "field": "payout_amount", "unit": "USD", "explanation": "Apply incremental tiers on (BASE+YQ) for eligible coupons." }
+          }
+        ]
+      }
+    }
+  ],
+
+  "metric_eligibility": {
+    "NDC share": { "applies": false, "threshold": "NONE" },
+    "Year on year growth": { "applies": false, "threshold": "NONE" },
+    "Period over period growth": { "applies": false, "threshold": "NONE" },
+    "Simple slab": { "applies": true }
+  },
+
+  "rule_mgmt": {
+    "rule_creation_date": "2025-09-27",
+    "rule_update_date": "2025-09-27",
+    "rule_active_status": "ACTIVE"
+  }
+}

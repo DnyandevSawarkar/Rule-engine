@@ -1,0 +1,405 @@
+{
+    "ruleset_id": "7d4b767d-d661-4c2d-a8a0-b422dc198fbd",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "KQ MZN Jan - Jun 2025.pdf",
+      "contract_window": { "start_date": "2025-01-01", "end_date": "2025-06-30" },
+      "currency": ["USD"],
+      "location": "Mozambique (POS MZ)",
+      "iata_codes": ["5621025"],
+      "countries": ["MZ"],
+      "airlines": ["Kenya Airways"],
+      "airline_codes": ["KQ"],
+      "number_of_mtp": 3,
+      "discovery_notes": "H1 2025 program. Q1 and Q2 are differential YoY growth backends on FLOWN, computed on BASE+YR; YoY tiers are % of the BLP (PY same-quarter flown). Separate NDC bonus by quarterly NDC share."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "7d4b767d-d661-4c2d-a8a0-b422dc198fbd_MTP1",
+        "name": "Q1 Growth – Differential on Flown (BASE+YR); YoY tiers vs BLP",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": false,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "blp": {
+          "applies": true,
+          "value": 38074,
+          "notes": "BLP is PY Q1 2024 Net Flown Revenue (USD). YoY Growth % is calculated as (Q1 2025 flown_revenue / 38074) * 100."
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-03-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YR"],
+            "formula": "flown_revenue = BASE + YR; yoy_growth_percent = (flown_revenue / BLP) * 100",
+            "capping": { "enabled": true, "value": "120% YoY cap" }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "DIFFERENTIAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YR"],
+            "formula": "payout_amount = tier_percent * revenue_in_selected_yoy_band",
+            "expected_percent_range": { "min": 3.0, "max": 3.5, "logic": "Per Q1 YoY bands" },
+            "capping": { "enabled": true, "value": "No payout beyond 120% YoY" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Fare Type": ["Published","Promotional(PR)","Corporate"],
+            "Sales Date": "2025-01-01 to 2025-03-31",
+            "Travel Date": "2025-01-01 to 2025-03-31",
+            "City Codes": ["MPM"],
+            "POS": ["MZ"],
+            "Marketing Airline": ["KQ"],
+            "Operating Airline": ["KQ"],
+            "Ticketing Airline": ["KQ-706"]
+          },
+          "OUT": {
+            "Fare Type": ["Upfront Discounted","IT","Groups","Missionary","Student","Seamen","Infant","Free tickets"],
+            "Code Share": ["Excluded if not flown on KQ metal"],
+            "Interline": ["Excluded"]
+          },
+          "SILENT": {
+            "Cabin": ["ANY"],
+            "RBD": ["ANY"],
+            "Dom/Intl": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"],
+            "PCCs": ["ANY"],
+            "POO": ["ANY"],
+            "Alliance": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Ticketing Airline": ["KQ-706"],
+            "POS": ["MZ"]
+          },
+          "OUT": {},
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Q1 YoY Growth Bands vs BLP (BLP = 38,074 USD)",
+            "table_filter": { "key": "Quarter", "value": ["Q1 2025"] },
+            "rows": [
+              { "metric": "YoY Growth %", "target": { "min": 100, "max": 110 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "YoY Growth %", "target": { "min": 111, "max": 120 }, "payout": { "value": 3.5, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "DIFFERENTIAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YR"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "Q1 YoY Growth Bands vs BLP (BLP = 38,074 USD)",
+                "metric": "YoY Growth %",
+                "respect_capping": true,
+                "cap_value": "120"
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "USD",
+                "explanation": "payout_amount = tier_percent * revenue_in_selected_yoy_band"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "120% YoY",
+            "notes": "No accrual or payment above maximum YoY threshold."
+          },
+          "performance_guards": [
+            "Carrier statistics are determinative.",
+            "Infant and free tickets excluded.",
+            "YR included in measure; YQ, taxes, commissions excluded."
+          ]
+        }
+      },
+  
+      {
+        "rule_id": "7d4b767d-d661-4c2d-a8a0-b422dc198fbd_MTP2",
+        "name": "Q2 Growth – Differential on Flown (BASE+YR); YoY tiers vs BLP",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": false,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "blp": {
+          "applies": true,
+          "value": 54479,
+          "notes": "BLP is PY Q2 2024 Net Flown Revenue (USD). YoY Growth % is calculated as (Q2 2025 flown_revenue / 54479) * 100."
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-04-01", "to": "2025-06-30" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YR"],
+            "formula": "flown_revenue = BASE + YR; yoy_growth_percent = (flown_revenue / BLP) * 100",
+            "capping": { "enabled": true, "value": "120% YoY cap" }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "DIFFERENTIAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE","YR"],
+            "formula": "payout_amount = tier_percent * revenue_in_selected_yoy_band",
+            "expected_percent_range": { "min": 3.0, "max": 3.5, "logic": "Per Q2 YoY bands" },
+            "capping": { "enabled": true, "value": "No payout beyond 120% YoY" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Fare Type": ["Published","Promotional(PR)","Corporate"],
+            "Sales Date": "2025-04-01 to 2025-06-30",
+            "Travel Date": "2025-04-01 to 2025-06-30",
+            "City Codes": ["MPM"],
+            "POS": ["MZ"],
+            "Marketing Airline": ["KQ"],
+            "Operating Airline": ["KQ"],
+            "Ticketing Airline": ["KQ-706"]
+          },
+          "OUT": {
+            "Fare Type": ["Upfront Discounted","IT","Groups","Missionary","Student","Seamen","Infant","Free tickets"],
+            "Code Share": ["Excluded if not flown on KQ metal"],
+            "Interline": ["Excluded"]
+          },
+          "SILENT": {
+            "Cabin": ["ANY"],
+            "RBD": ["ANY"],
+            "Dom/Intl": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"],
+            "PCCs": ["ANY"],
+            "POO": ["ANY"],
+            "Alliance": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Ticketing Airline": ["KQ-706"],
+            "POS": ["MZ"]
+          },
+          "OUT": {},
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Q2 YoY Growth Bands vs BLP (BLP = 54,479 USD)",
+            "table_filter": { "key": "Quarter", "value": ["Q2 2025"] },
+            "rows": [
+              { "metric": "YoY Growth %", "target": { "min": 100, "max": 110 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "YoY Growth %", "target": { "min": 111, "max": 120 }, "payout": { "value": 3.5, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "DIFFERENTIAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YR"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "Q2 YoY Growth Bands vs BLP (BLP = 54,479 USD)",
+                "metric": "YoY Growth %",
+                "respect_capping": true,
+                "cap_value": "120"
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "USD",
+                "explanation": "payout_amount = tier_percent * revenue_in_selected_yoy_band"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "120% YoY",
+            "notes": "No accrual or payment above maximum YoY threshold."
+          },
+          "performance_guards": [
+            "Carrier statistics are determinative.",
+            "Infant and free tickets excluded.",
+            "YR included in measure; YQ, taxes, commissions excluded."
+          ]
+        }
+      },
+  
+      {
+        "rule_id": "7d4b767d-d661-4c2d-a8a0-b422dc198fbd_MTP3",
+        "name": "NDC Bonus – Fixed USD per Ticket by Quarterly NDC Share",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": true,
+          "Coupon Count": false,
+          "Ticket Count": true,
+          "NDC Share": true,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": false,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "blp": { "applies": false, "value": "", "notes": "" },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-06-30" },
+          "trigger": {
+            "type": "SALES",
+            "measure": ["Ticket Count"],
+            "components": [],
+            "formula": "ndc_share_percent = (ndc_ticket_count / total_ticket_count) * 100",
+            "capping": { "enabled": true, "value": "NDC payout capped at 50% NDC share of total revenue per quarter" }
+          },
+          "payout": {
+            "type": "AMOUNT",
+            "computation": "FIXED",
+            "measure": ["Ticket Count"],
+            "components": [],
+            "formula": "payout_amount = amount_per_ticket * eligible_ndc_ticket_count",
+            "expected_percent_range": { "min": 0, "max": 0, "logic": "Fixed USD per ticket by NDC share band" },
+            "capping": { "enabled": true, "value": "Cap at 50% of total revenue per quarter for NDC bonus" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Sales Date": "2025-01-01 to 2025-06-30",
+            "Travel Date": "2025-01-01 to 2025-06-30",
+            "City Codes": ["MPM"],
+            "POS": ["MZ"],
+            "Marketing Airline": ["KQ"],
+            "Operating Airline": ["KQ"],
+            "Ticketing Airline": ["KQ-706"],
+            "NDC": ["true"]
+          },
+          "OUT": {
+            "NDC": ["false"]
+          },
+          "SILENT": {
+            "Cabin": ["ANY"],
+            "RBD": ["ANY"],
+            "Fare Type": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"],
+            "PCCs": ["ANY"],
+            "POO": ["ANY"],
+            "Alliance": ["ANY"],
+            "Interline": ["ANY"],
+            "Code Share": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": { "POS": ["MZ"] },
+          "OUT": {},
+          "SILENT": {}
+        },
+        "tiers": [
+          {
+            "table_label": "NDC Share % per Quarter → USD per NDC Ticket",
+            "table_filter": { "key": "Quarter", "value": ["Q1 2025","Q2 2025"] },
+            "rows": [
+              { "metric": "NDC Share %", "target": { "min": 0, "max": 5 }, "payout": { "value": 0, "unit": "AMOUNT" } },
+              { "metric": "NDC Share %", "target": { "min": 6, "max": 15 }, "payout": { "value": 1.0, "unit": "AMOUNT" } },
+              { "metric": "NDC Share %", "target": { "min": 16, "max": 25 }, "payout": { "value": 1.5, "unit": "AMOUNT" } },
+              { "metric": "NDC Share %", "target": { "min": 26, "max": 50 }, "payout": { "value": 2.0, "unit": "AMOUNT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "FIXED", "measure_name": "Ticket Count", "apply_components": [] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_AMOUNT",
+              "inputs": {
+                "slab_table": "NDC Share % per Quarter → USD per NDC Ticket",
+                "metric": "NDC Share %",
+                "respect_capping": true,
+                "cap_value": "50"
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "USD",
+                "explanation": "payout_amount = amount_per_ticket * eligible_ndc_ticket_count"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "NDC bonus capped at 50% share of total revenue per quarter",
+            "notes": "Structure and payout subject to quarterly review by KQ."
+          },
+          "performance_guards": [
+            "Agent must comply with KQ online sales prerequisites.",
+            "Carrier may terminate the bonus for non-compliance."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": true, "threshold": ">=6% for positive payout on NDC bonus" },
+      "Year on year growth": { "applies": true, "threshold": ">=100% YoY vs BLP for Q1/Q2 growth rules" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": false }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-30",
+      "rule_update_date": "2025-09-30",
+      "rule_active_status": "ACTIVE"
+    }
+  }

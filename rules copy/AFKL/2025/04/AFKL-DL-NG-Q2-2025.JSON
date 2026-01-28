@@ -1,0 +1,171 @@
+{
+    "ruleset_id": "de25be67-4e09-459a-a4d2-c0f9b62e4a8e",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "AFKL NG Jan-Dec25 PLB.pdf (Exhibit: Q2 2025)",
+      "contract_window": { "start_date": "2025-04-01", "end_date": "2025-06-30" },
+      "currency": ["USD"],
+      "location": "Nigeria PoO (NG) → NAM (EU↔NAM, MEAI↔NAM)",
+      "iata_codes": ["59202253"],
+      "countries": ["NG","EU","US","CA","MX","PF","MEAI","TR","RU"],
+      "airlines": ["Air France","KLM","Delta Air Lines"],
+      "airline_codes": ["AF","KL","DL"],
+      "number_of_mtp": 1,
+      "discovery_notes": "Pay-on SOLD revenue (BASE+YR). Payout % varies by cabin/fare option using Revenue Index vs PY. DL incentive exempt from period capping; others capped per period."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "de25be67-4e09-459a-a4d2-c0f9b62e4a8e_MTP1",
+        "name": "Q2 NAM (PoO NG) — Sold Revenue Index vs PY — Cabin/Fare Option Payouts",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": true,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": false,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-04-01", "to": "2025-06-30" },
+          "trigger": {
+            "type": "SALES",
+            "measure": ["Sold Revenue"],
+            "components": ["BASE","YR"],
+            "formula": "Sold Revenue = BASE + YR ",
+            "capping": { "enabled": false, "value": 0 }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "FIXED",
+            "measure": ["Sold Revenue"],
+            "components": ["BASE","YR"],
+            "formula": "payout_amount = tier_percent * (BASE + YR)",
+            "expected_percent_range": { "min": 3.0, "max": 5.0, "logic": "Per cabin/fare-option tables at 110–160 and 160–300 Revenue Index tiers" },
+            "capping": { "enabled": true, "value": 16556 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Cabin/Fare Option": ["Economy Light","Economy non-Light","Premium Economy","Business","Promotional fares","Contracted Corporate Revenue"],
+            "O&D": ["EU↔NAM","MEAI↔NAM"],
+            "POS": ["NG"],
+            "POO": ["NG"],
+            "Sales Date": "2025-04-01 to 2025-06-30",
+            "Travel Date": "2025-04-01 to 2025-06-30",
+            "Marketing Airline": ["AF","KL","DL"],
+            "Ticketing Airline": ["AF","KL","DL"]
+          },
+          "OUT": {
+            "Dom/Intl": ["Domestic USA","USA↔Canada/Mexico (not part of an international fare break)"],
+            "Fare Type": ["U.S. Military and Government awarded market traffic"],
+            "O&D (Excluded)": ["Outside EU↔NAM","Outside MEAI↔NAM"],
+            "Route": ["Any via TR","Any via RU"],
+            "Other": ["AFKL Distribution Surcharge excluded from performance/payment","SAF contribution excluded","Infant tickets excluded","Free tickets excluded"]
+          },
+          "SILENT": {
+            "RBD": ["ALL"],
+            "NDC": ["ANY"],
+            "Corporate Code": ["ANY/As per table row"],
+            "Tour Code": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Marketing Airline": ["AF","KL","DL"],
+            "Ticketing Airline": ["AF","KL","DL"]
+          },
+          "OUT": {},
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Economy Light – Revenue Index vs PY",
+            "table_filter": { "key": "Cabin/Fare Option", "value": "Economy Light" },
+            "rows": [
+              { "metric": "Revenue Index (%)", "target": { "min": 110, "max": 160 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "Revenue Index (%)", "target": { "min": 160, "max": 300 }, "payout": { "value": 4.0, "unit": "PERCENT" } }
+            ]
+          },
+          {
+            "table_label": "Economy non-Light – Revenue Index vs PY",
+            "table_filter": { "key": "Cabin/Fare Option", "value": "Economy non-Light" },
+            "rows": [
+              { "metric": "Revenue Index (%)", "target": { "min": 110, "max": 160 }, "payout": { "value": 4.0, "unit": "PERCENT" } },
+              { "metric": "Revenue Index (%)", "target": { "min": 160, "max": 300 }, "payout": { "value": 5.0, "unit": "PERCENT" } }
+            ]
+          },
+          {
+            "table_label": "Premium Economy – Revenue Index vs PY",
+            "table_filter": { "key": "Cabin/Fare Option", "value": "Premium Economy" },
+            "rows": [
+              { "metric": "Revenue Index (%)", "target": { "min": 110, "max": 160 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "Revenue Index (%)", "target": { "min": 160, "max": 300 }, "payout": { "value": 4.0, "unit": "PERCENT" } }
+            ]
+          },
+          {
+            "table_label": "Business – Revenue Index vs PY",
+            "table_filter": { "key": "Cabin/Fare Option", "value": "Business" },
+            "rows": [
+              { "metric": "Revenue Index (%)", "target": { "min": 110, "max": 160 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "Revenue Index (%)", "target": { "min": 160, "max": 300 }, "payout": { "value": 4.0, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": {
+            "basis": "FIXED",
+            "measure_name": "Sold Revenue",
+            "apply_components": ["BASE","YR"],
+            "period_level_notes": "Select tier% per row by Cabin/Fare Option and achieved Revenue Index vs PY; apply to eligible Sold Revenue."
+          },
+          "actions": [
+            {
+              "action": "SELECT_TABLE_BY_DIMENSION",
+              "inputs": { "dimension_key": "Cabin/Fare Option", "dimension_value_field": "fare_option", "tables": ["Economy Light – Revenue Index vs PY","Economy non-Light – Revenue Index vs PY","Premium Economy – Revenue Index vs PY","Business – Revenue Index vs PY"] },
+              "output": { "field": "selected_table", "unit": "NAME", "explanation": "Resolve correct tier table by cabin/fare option." }
+            },
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": { "slab_table_field": "selected_table", "metric": "Revenue Index (%)", "respect_capping": true, "cap_value": 16556 },
+              "output": { "field": "payout_amount", "unit": "USD", "explanation": "payout_amount = tier_percent * (BASE + YR); respect per-period cap except DL portion (see guards)." }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": true, "value": 16556, "notes": "Max incentives payout per period; DL-earned incentive is EXEMPT from capping." },
+          "performance_guards": [
+            "Carriers’ records/statistics are conclusive for tracking & calculation.",
+            "When AF/KL/DL are involved, issuing carrier is operator of first international segment."
+          ],
+          "exceptions": [
+            { "name": "DL_EXEMPT_FROM_CAP", "logic": "If Ticketing Airline = DL OR Marketing Airline = DL only portion-attributed to DL bypasses period cap." }
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": true, "threshold": "Revenue Index vs PY" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-28",
+      "rule_update_date": "2025-09-28",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+  

@@ -1,0 +1,167 @@
+{
+  "ruleset_id": "43c41d19-569e-470c-8d92-95a476e33133",
+  "version": "1.0",
+  "metadata": {
+    "source_name": "ET NG JAN-JUN 25 PLB.pdf",
+    "contract_window": { "start_date": "2025-01-01", "end_date": "2025-06-30" },
+    "currency": "USD",
+    "location": "Nigeria (POS NG, City LOS)",
+    "iata_codes": ["5920275"],
+    "countries": ["Nigeria"],
+    "airlines": ["Ethiopian Airlines"],
+    "airline_codes": ["ET"],
+    "number_of_mtp": 1,
+    "discovery_notes": "Growth tier 1–4%; NFR baseline (BLP) USD 2,504,370; Code share excluded; Measures exclude taxes/YR/YQ."
+  },
+  "rules": [
+    {
+      "rule_id": "43c41d19-569e-470c-8d92-95a476e33133_MTP1",
+      "name": "PLB Revenue Incentive (Jan–Jun 2025)",
+      "type": "Single Tier Metric TABLE",
+      "contract": {
+        "contract_id": "ET-NG-2025H1-PLB-01",
+        "contract_name": "ET Nigeria PLB Jan–Jun 2025 (Satguru)",
+        "dip_type": "PLB Revenue",
+        "blp": { "applies": true, "value": 2504370, "unit": "USD", "notes": "Minimum Net Flown Revenue for period qualification." }
+      },
+      "variant_flags": {
+        "Sales": false,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": true,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-06-30" },
+        "trigger": {
+          "type": "FLOWN",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE"],
+          "formula": "Net flown revenue excluding commissions, refunds, taxes, YR, YQ",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "DIFFERENTIAL",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE"],
+          "formula": "payout_amount = (tier_percent) * (BASE)",
+          "expected_percent_range": { "min": 1, "max": 4, "logic": "As per tier table" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "POS": ["NG", "LOS"],
+          "Travel Date": "2025-01-01 to 2025-06-30",
+          "Sales Date": "2025-01-01 to 2025-06-30",
+          "Fare Type": ["ALL"],
+          "Cabin": ["ALL"],
+          "RBD": ["ALL"],
+          "Marketing Airline": ["ET"],
+          "Ticketing Airline": ["ET"]
+        },
+        "OUT": {
+          "Code Share": true
+        }
+      },
+      "where_payout": {
+        "IN": {
+          "POS": ["NG", "LOS"],
+          "Travel Date": "2025-01-01 to 2025-06-30",
+          "Sales Date": "2025-01-01 to 2025-06-30",
+          "Fare Type": ["ALL"],
+          "Cabin": ["ALL"],
+          "RBD": ["ALL"],
+          "Marketing Airline": ["ET"],
+          "Ticketing Airline": ["ET"]
+        },
+        "OUT": {
+          "Code Share": true
+        }
+      },
+      "tiers": [
+        {
+          "table_label": "NFR Growth tiers (USD, Jan–Jun 2025)",
+          "table_filter": { "key": "NONE", "value": [] },
+          "rows": [
+            { "metric": "Net Flown Revenue", "target": { "min": 2504370, "max": 2845879 }, "payout": { "value": 1, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 2845880, "max": 3210149 }, "payout": { "value": 2, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 3210150, "max": 3415049 }, "payout": { "value": 3, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 3415050, "max": "INF" }, "payout": { "value": 4, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": {
+          "basis": "DIFFERENTIAL",
+          "measure_name": "Net Flown Revenue",
+          "apply_components": ["BASE"],
+          "period_level_notes": "Tier determination happens on aggregated period NFR; per-coupon accrual uses final period tier."
+        },
+        "actions": [
+          {
+            "action": "COMPUTE_PERIOD_TIER",
+            "inputs": {
+              "tier_table": "NFR Growth tiers (USD, Jan–Jun 2025)",
+              "metric": "Net Flown Revenue",
+              "blp_value": 2504370,
+              "blp_required": true
+            },
+            "output": {
+              "field": "period_tier_percent",
+              "unit": "PERCENT",
+              "explanation": "Select tier percent based on aggregated NFR if BLP met."
+            }
+          },
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "metric": "Net Flown Revenue",
+              "respect_capping": false,
+              "period_tier_field": "period_tier_percent"
+            },
+            "output": {
+              "field": "payout_amount_per_coupon",
+              "unit": "USD",
+              "explanation": "Apply final period tier% on coupon BASE for provisional/per-coupon accrual."
+            }
+          }
+        ]
+      },
+      "guards": {
+        "contract_cap": { "enabled": false, "value": 0, "notes": "" },
+        "performance_guards": [
+          "IATA agencies with Global Incentive Agreements excluded.",
+          "Ancillary/extra services revenue not eligible.",
+          "ADMs/GDS passive segment chargebacks deductible from incentive."
+        ]
+      },
+      "audit": {
+        "citations": [
+          { "section": "Validity & assessment period", "page": "1", "text_snippet": "valid from January 01, 2025 till June 30, 2025" },
+          { "section": "Measure", "page": "1", "text_snippet": "net/flown revenue ... excluding ... YR and YQ" },
+          { "section": "Exclusions", "page": "1", "text_snippet": "Code share revenue shall not be included" },
+          { "section": "tiers", "page": "1", "text_snippet": "From 2,504,370 ... 1%; ... 2%; ... 3%; ... 4%" }
+        ],
+        "confidence": 0.86,
+        "extraction_notes": "Payment 45–90 days post-period; ET may amend with 30 days’ notice; confidentiality clause."
+      },
+      "rule_mgmt": {
+        "rule_creation_date": "2025-09-19",
+        "rule_update_date": "2025-09-19",
+        "rule_active_status": "ACTIVE"
+      }
+    }
+  ],
+  "metric_eligibility": {
+    "NDC share": { "applies": false, "threshold": "NONE" },
+    "Year on year growth": { "applies": false, "threshold": "NONE" },
+    "Period over period growth": { "applies": false, "threshold": "NONE" },
+    "Simple tier": { "applies": true }
+  }
+}

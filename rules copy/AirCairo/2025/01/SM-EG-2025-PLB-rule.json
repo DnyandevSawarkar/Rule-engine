@@ -1,0 +1,157 @@
+{
+    "ruleset_id": "2fb7334c-963a-4b4a-ac7d-3d34e6ba3934",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "Air Cairo EG Jan-Dec25 PLB.pdf",
+      "contract_window": { "start_date": "2025-01-01", "end_date": "2025-12-31" },
+      "currency": ["EGP"],
+      "location": "Egypt (POS EG)",
+      "iata_codes": ["9022273"],
+      "countries": ["EG"],
+      "airlines": ["Air Cairo"],
+      "airline_codes": ["SM"],
+      "number_of_mtp": 1,
+      "discovery_notes": "Differential (cumulative) backend on international flown BASE revenue only. Eligible if SM ticketed (381) and SM operated. Minimum flown threshold EGP 8,000,000 to qualify."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "2fb7334c-963a-4b4a-ac7d-3d34e6ba3934_MTP1",
+        "name": "Air Cairo 2025 – Flow-Based Backend (Cumulative)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE"],
+            "formula": "Eligible international coupons flown on SM, ticketed on 381, operated by SM; BASE only (taxes/fees excluded).",
+            "capping": { "enabled": false, "value": 0 }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE"],
+            "formula": "payout_amount = tier_percent * amount_in_slab_on(BASE)",
+            "expected_percent_range": { "min": 1.0, "max": 3.5, "logic": "Backend cumulative table" },
+            "capping": { "enabled": false, "value": 0 }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Dom/Intl": ["International"],
+            "Sales Date": "2025-01-01 to 2025-12-31",
+            "Travel Date": "2025-01-01 to 2025-12-31",
+            "POS": ["EG"],
+            "Marketing Airline": ["SM"],
+            "Operating Airline": ["SM"],
+            "Ticketing Airline": ["SM (381)"],
+            "Other": ["Agency IATA 9022273 applicable"]
+          },
+          "OUT": {
+            "Dom/Intl": ["Domestic"],
+            "Fare Type": ["Infant tickets", "Umra groups"],
+            "Code Share": ["Codeshare flights"],
+            "Other": ["Charter flights"]
+          },
+          "SILENT": {
+            "Cabin": ["ANY"],
+            "RBD": ["ANY"],
+            "Fare Type (otherwise)": ["ANY"],
+            "O&D": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Marketing Airline": ["SM"],
+            "Operating Airline": ["SM"],
+            "Ticketing Airline": ["SM (381)"],
+            "POS": ["EG"],
+            "Dom/Intl": ["International"]
+          },
+          "OUT": {
+            "Fare Type": ["Infant tickets", "Umra groups"],
+            "Code Share": ["Codeshare flights"],
+            "Other": ["Charter flights"]
+          },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Backend Incentive – Cumulative on Base (International only)",
+            "table_filter": { "key": "Scope", "value": ["SM Operated", "SM Ticketed (381)", "International"] },
+            "rows": [
+              { "metric": "Net Flown Revenue (EGP)", "target": { "min": 1, "max": 12000000 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (EGP)", "target": { "min": 12000001, "max": 25000000 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (EGP)", "target": { "min": 25000001, "max": 40000000 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (EGP)", "target": { "min": 40000001, "max": "INF" }, "payout": { "value": 3.5, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": {
+            "basis": "INCREMENTAL",
+            "measure_name": "Net Flown Revenue",
+            "apply_components": ["BASE"],
+            "period_level_notes": "Backend is payable only if the overall flown BASE revenue reaches the minimum threshold."
+          },
+          "actions": [
+            {
+              "action": "CHECK_BASELINE",
+              "inputs": { "metric": "Net Flown Revenue", "blp_value": 8000000 },
+              "output": { "field": "blp_met", "unit": "BOOLEAN", "explanation": "BLP: flown BASE revenue must be ≥ EGP 8,000,000 to unlock payout." }
+            },
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "when": { "all": [{ "field": "blp_met", "op": "==", "value": true }] },
+              "inputs": { "slab_table": "Backend Incentive – Cumulative on Base (International only)", "metric": "Net Flown Revenue", "respect_capping": false },
+              "output": { "field": "payout_amount", "unit": "EGP", "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE)" }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": { "enabled": false, "value": 0, "notes": "" },
+          "performance_guards": [
+            "No incentive if agency defaults or violates terms.",
+            "All branches treated as one unit.",
+            "Look-to-book ratio 1:300 — excess incurs penalty.",
+            "Tickets must be issued in 2025; travel completed by 2025-12-31; claims after 2026-03-31 not accepted."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-28",
+      "rule_update_date": "2025-09-28",
+      "rule_active_status": "ACTIVE"
+    }
+  }
+  

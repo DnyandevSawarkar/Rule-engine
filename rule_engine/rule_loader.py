@@ -48,12 +48,11 @@ class RuleLoader:
         Returns:
             List of ContractData objects (deduplicated by contract_id)
         """
-        # Return cached contracts if available
-        if self._rules_cache:
-            logger.debug(f"Returning {len(self._rules_cache)} cached contracts")
-            return list(self._rules_cache.values())
-        
-        contracts = []
+        # Always rescan the filesystem so that deleted/added rules
+        # are reflected immediately. Rebuild the in‑memory cache
+        # on every call instead of returning stale entries.
+        self._rules_cache = {}
+        contracts: List[ContractData] = []
         seen_contract_ids = set()
         
         try:
@@ -421,10 +420,15 @@ class RuleLoader:
                 for row in rows:
                     payout_value = row.get('payout_value') or row.get('Incentive %')
                     payout_unit = row.get('payout_unit', 'PERCENT')
-                    
+
                     if payout_unit == 'PERCENT' and payout_value is not None:
-                        total_percentage += Decimal(str(payout_value))
-                        count += 1
+                        try:
+                            total_percentage += Decimal(str(payout_value))
+                            count += 1
+                        except Exception as e:
+                            # Gracefully handle bad numeric values in legacy contract tiers
+                            # instead of bubbling up Decimal(ConversionSyntax)
+                            print(f"❌ Skipping invalid payout_value '{payout_value}' in contract tiers: {e}")
             
             if count > 0:
                 avg_percentage = total_percentage / count
@@ -672,10 +676,14 @@ class RuleLoader:
                     payout_info = row.get('payout', {})
                     payout_value = payout_info.get('value', 0)
                     payout_unit = payout_info.get('unit', '')
-                    
+
                     if payout_unit == 'PERCENT':
-                        total_percentage += Decimal(str(payout_value))
-                        count += 1
+                        try:
+                            total_percentage += Decimal(str(payout_value))
+                            count += 1
+                        except Exception as e:
+                            # Gracefully handle bad numeric values in rule tiers
+                            print(f"❌ Skipping invalid payout_value '{payout_value}' in rule tiers: {e}")
             
             if count > 0:
                 avg_percentage = total_percentage / count

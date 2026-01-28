@@ -1,0 +1,299 @@
+{
+    "ruleset_id": "a7a7d87b-7544-4247-a50a-036f72f4e70b",
+    "version": "1.0",
+    "metadata": {
+      "source_name": "TK PLB incentive text.pdf",
+      "contract_window": { "start_date": "2025-01-01", "end_date": "2025-12-31" },
+      "currency": ["USD"],
+      "location": "Egypt (POS EG)",
+      "iata_codes": ["9022273"],
+      "countries": ["EG"],
+      "airlines": ["Turkish Airlines"],
+      "airline_codes": ["TK"],
+      "number_of_mtp": 2,
+      "discovery_notes": "Two cabin-based FLOWN programs (Economy, Business). Incremental slabs on BASE only. TK ticketed & operated only. Capping at last tier trigger revenue (no accrual above final slab threshold). Exclusions include promo/special protocol/Hajj-Umrah, interline/codeshare, TRACE/charter, taxes/charges/refunds/handling."
+    },
+  
+    "rules": [
+      {
+        "rule_id": "a7a7d87b-7544-4247-a50a-036f72f4e70b_MTP1",
+        "name": "Economy – Incremental Net Flown Revenue (Base-only; Cap at last tier)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE"],
+            "formula": "NRF = BASE on TK ticketed & operated flown coupons; taxes/fees excluded; Egypt O&D required.",
+            "capping": { "enabled": true, "value": "Cap at last tier trigger revenue (no accrual beyond final slab)" }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE"],
+            "formula": "payout_amount = tier_percent * amount_in_slab_on(BASE)",
+            "expected_percent_range": { "min": 2.0, "max": 4.25, "logic": "Per Economy slab table" },
+            "capping": { "enabled": true, "value": "Cap at last tier trigger revenue" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Cabin": ["Economy"],
+            "O&D": ["Egypt origin or destination"],
+            "POS": ["EG"],
+            "Sales Date": "2025-01-01 to 2025-12-31",
+            "Travel Date": "2025-01-01 to 2025-12-31",
+            "Marketing Airline": ["TK"],
+            "Operating Airline": ["TK"],
+            "Ticketing Airline": ["TK"]
+          },
+          "OUT": {
+            "Fare Type": ["Promotional fares excluded from incentive","Special protocol fares","Hajj/Umrah revenue","Commissions"],
+            "O&D (exclude)": ["Non-Egypt traffic"],
+            "Code Share": ["Codeshare flights (TK as marketing)"],
+            "Interline": ["Interline tickets"],
+            "Other": ["Coupons not registered in TRACE","Charter flights","Taxes/airport charges/refunds/handling fees"]
+          },
+          "SILENT": {
+            "RBD": ["ANY"],
+            "Dom/Intl": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"],
+            "PCCs": ["ANY"],
+            "City Codes": ["ANY"],
+            "NDC": ["ANY"],
+            "Alliance": ["ANY"],
+            "Fare Basis Patterns": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Cabin": ["Economy"],
+            "POS": ["EG"],
+            "Marketing Airline": ["TK"],
+            "Operating Airline": ["TK"],
+            "Ticketing Airline": ["TK"]
+          },
+          "OUT": {
+            "Fare Type": ["Promotional fares excluded from incentive","Special protocol fares","Hajj/Umrah revenue","Commissions"],
+            "Code Share": ["Codeshare flights (TK as marketing)"],
+            "Interline": ["Interline tickets"],
+            "Other": ["Coupons not registered in TRACE","Charter flights","Taxes/airport charges/refunds/handling fees"]
+          },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Economy – Target Net Flown Revenue (USD)",
+            "table_filter": { "key": "Cabin", "value": ["Economy"] },
+            "rows": [
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 110000, "max": 200000 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 200001, "max": 250000 }, "payout": { "value": 2.25, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 300001, "max": 400000 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 400001, "max": 500000 }, "payout": { "value": 3.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 500001, "max": 700000 }, "payout": { "value": 4.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 700001, "max": "INF" }, "payout": { "value": 4.25, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "Economy – Target Net Flown Revenue (USD)",
+                "metric": "Net Flown Revenue (USD)",
+                "respect_capping": true,
+                "cap_rule": "Stop accrual above last tier trigger revenue"
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "USD",
+                "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE)"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "Cap at last tier trigger revenue",
+            "notes": "No incentive accrual beyond final slab threshold."
+          },
+          "performance_guards": [
+            "TK ticketed & operated only.",
+            "Program confidential; branch pooling per carrier policy.",
+            "All exclusions per OUT filters apply."
+          ]
+        }
+      },
+  
+      {
+        "rule_id": "a7a7d87b-7544-4247-a50a-036f72f4e70b_MTP2",
+        "name": "Business – Incremental Net Flown Revenue (Base-only; Cap at last tier)",
+        "type": "Multi Tier Metric TABLE",
+        "variant_flags": {
+          "Sales": false,
+          "Coupon Count": false,
+          "Ticket Count": false,
+          "NDC Share": false,
+          "Ancillary": false,
+          "Corporate Code": false,
+          "NFR": true,
+          "Combination": false,
+          "Combination_detail": "NONE"
+        },
+  
+        "what_if": {
+          "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+          "trigger": {
+            "type": "FLOWN",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE"],
+            "formula": "NRF = BASE on TK ticketed & operated flown coupons; taxes/fees excluded; Egypt O&D required.",
+            "capping": { "enabled": true, "value": "Cap at last tier trigger revenue (no accrual beyond final slab)" }
+          },
+          "payout": {
+            "type": "PERCENTAGE",
+            "computation": "INCREMENTAL",
+            "measure": ["Net Flown Revenue"],
+            "components": ["BASE"],
+            "formula": "payout_amount = tier_percent * (BASE)",
+            "expected_percent_range": { "min": 2.0, "max": 3.75, "logic": "Per Business slab table" },
+            "capping": { "enabled": true, "value": "Cap at last tier trigger revenue" }
+          }
+        },
+  
+        "where_trigger": {
+          "IN": {
+            "Cabin": ["Business"],
+            "O&D": ["Egypt origin or destination"],
+            "POS": ["EG"],
+            "Sales Date": "2025-01-01 to 2025-12-31",
+            "Travel Date": "2025-01-01 to 2025-12-31",
+            "Marketing Airline": ["TK"],
+            "Operating Airline": ["TK"],
+            "Ticketing Airline": ["TK"]
+          },
+          "OUT": {
+            "Fare Type": ["Promotional fares excluded from incentive","Special protocol fares","Hajj/Umrah revenue","Commissions"],
+            "O&D (exclude)": ["Non-Egypt traffic"],
+            "Code Share": ["Codeshare flights (TK as marketing)"],
+            "Interline": ["Interline tickets"],
+            "Other": ["Coupons not registered in TRACE","Charter flights","Taxes/airport charges/refunds/handling fees"]
+          },
+  "SILENT": {
+            "RBD": ["ANY"],
+            "Dom/Intl": ["ANY"],
+            "Route": ["ANY"],
+            "Flight Nos": ["ANY"],
+            "Corporate Code": ["ANY"],
+            "Tour Code": ["ANY"],
+            "PCCs": ["ANY"],
+            "City Codes": ["ANY"],
+            "NDC": ["ANY"],
+            "Alliance": ["ANY"],
+            "Fare Basis Patterns": ["ANY"]
+          }
+        },
+  
+        "where_payout": {
+          "IN": {
+            "Cabin": ["Business"],
+            "POS": ["EG"],
+            "Marketing Airline": ["TK"],
+            "Operating Airline": ["TK"],
+            "Ticketing Airline": ["TK"]
+          },
+          "OUT": {
+            "Fare Type": ["Promotional fares excluded from incentive","Special protocol fares","Hajj/Umrah revenue","Commissions"],
+            "Code Share": ["Codeshare flights (TK as marketing)"],
+            "Interline": ["Interline tickets"],
+            "Other": ["Coupons not registered in TRACE","Charter flights","Taxes/airport charges/refunds/handling fees"]
+          },
+          "SILENT": {}
+        },
+  
+        "tiers": [
+          {
+            "table_label": "Business – Target Net Flown Revenue (USD)",
+            "table_filter": { "key": "Cabin", "value": ["Business"] },
+            "rows": [
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 20001, "max": 80000 }, "payout": { "value": 2.0, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 80001, "max": 120000 }, "payout": { "value": 2.5, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 120001, "max": 200000 }, "payout": { "value": 3.25, "unit": "PERCENT" } },
+              { "metric": "Net Flown Revenue (USD)", "target": { "min": 200001, "max": "INF" }, "payout": { "value": 3.75, "unit": "PERCENT" } }
+            ]
+          }
+        ],
+  
+        "then": {
+          "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE"] },
+          "actions": [
+            {
+              "action": "COMPUTE_PAYOUT_PERCENT",
+              "inputs": {
+                "slab_table": "Business – Target Net Flown Revenue (USD)",
+                "metric": "Net Flown Revenue (USD)",
+                "respect_capping": true,
+                "cap_rule": "Stop accrual above last tier trigger revenue"
+              },
+              "output": {
+                "field": "payout_amount",
+                "unit": "USD",
+                "explanation": "payout_amount = tier_percent * amount_in_slab_on(BASE)"
+              }
+            }
+          ]
+        },
+  
+        "guards": {
+          "contract_cap": {
+            "enabled": true,
+            "value": "Cap at last tier trigger revenue",
+            "notes": "No incentive accrual beyond final slab threshold."
+          },
+          "performance_guards": [
+            "TK ticketed & operated only.",
+            "Program confidential; branch pooling per carrier policy.",
+            "All exclusions per OUT filters apply."
+          ]
+        }
+      }
+    ],
+  
+    "metric_eligibility": {
+      "NDC share": { "applies": false, "threshold": "NONE" },
+      "Year on year growth": { "applies": false, "threshold": "NONE" },
+      "Period over period growth": { "applies": false, "threshold": "NONE" },
+      "Simple slab": { "applies": true }
+    },
+  
+    "rule_mgmt": {
+      "rule_creation_date": "2025-09-29",
+      "rule_update_date": "2025-09-29",
+      "rule_active_status": "ACTIVE"
+    }
+  }

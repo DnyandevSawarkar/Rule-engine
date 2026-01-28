@@ -1,0 +1,374 @@
+{
+  "ruleset_id": "2541b1fa-b408-4066-a951-f13813d00edc",
+  "version": "1.0",
+  "metadata": {
+    "source_name": "SV - Satguru Travel Global 2025.pdf",
+    "contract_window": { "start_date": "2025-01-01", "end_date": "2025-12-31" },
+    "currency": ["AED","USD"],
+    "location": "Global (per-contract filters)",
+    "iata_codes": ["40218360","52200105","59202253","65200671","62211251","54271571","54210310","08262030","14319012","14319023","14366505","15333776","20265895","59212893","61200042","65321966","77200465","79211904","86211204","88200431","87200481","86214811","18210850","83200795","54200274","90222731"],
+    "countries": [],
+    "airlines": ["Saudia"],
+    "airline_codes": ["SV"],
+    "number_of_mtp": 4,
+    "discovery_notes": "Target-based NFR tiers (AED) with YQ/YR included; Travel Date 2025; Tour Code not GOV/SVMRNE; Fare Basis not GR; separate NDC incentives for per-ticket amount, ancillary %, and bonus %."
+  },
+
+  "rules": [
+    {
+      "rule_id": "2541b1fa-b408-4066-a951-f13813d00edc_MTP1",
+      "name": "SV Target-Based Incentive – Net Flown Revenue (AED)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": false,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": false,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": true,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+        "trigger": {
+          "type": "FLOWN",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE","YQ","YR"],
+          "formula": "NRF = BASE + YQ + YR (excludes upfront commission; exchanged/reissued tickets included)",
+          "capping": { "enabled": true, "value": "last_tier_target_plus_10pct_of_trigger" }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE","YQ","YR"],
+          "formula": "payout_amount = tier_percent * (BASE + YQ + YR)",
+          "expected_percent_range": { "min": 1.0, "max": 7.0, "logic": "as per NFR slabs" },
+          "capping": { "enabled": true, "value": "last_tier_target_plus_10pct_of_trigger" }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "Fare Type": ["IT","BT","NEGO","GROUPS(G)","CORPORATE"],
+          "Sales Date": "2025-01-01 to 2025-12-31",
+          "Travel Date": "2025-01-01 to 2025-12-31",
+          "Marketing Airline": ["SV"],
+          "Ticketing Airline": ["SV"],
+          "Date Notes": ["Carrier Routing = Other"]
+        },
+        "OUT": {
+          "Fare Type": ["GOV","HAJJ","FULL CHARTER"],
+          "Tour Code": ["GOV","SVMRNE"],
+          "Fare Basis Patterns": ["*GR*"],
+          "Other": ["Bookings not issued by Agency CRS/IATA location"]
+        },
+        "SILENT": {
+          "Cabin": ["ALL"],
+          "RBD": ["ALL"],
+          "POS": ["ALL"],
+          "POO": ["ALL"],
+          "Route": ["ALL"],
+          "O&D": ["ALL"],
+          "Flight Nos": ["ALL"],
+          "Alliance": ["NONE"],
+          "Code Share": ["ALLOW"],
+          "Interline": ["ALLOW"],
+          "NDC": ["ANY"]
+        }
+      },
+      "where_payout": {
+        "IN": {
+          "Sales Date": "2025-01-01 to 2025-12-31",
+          "Travel Date": "2025-01-01 to 2025-12-31",
+          "Marketing Airline": ["SV"],
+          "Ticketing Airline": ["SV"]
+        },
+        "OUT": {
+          "Fare Type": ["GOV","HAJJ","FULL CHARTER"],
+          "Tour Code": ["GOV","SVMRNE"],
+          "Fare Basis Patterns": ["*GR*"],
+          "Other": ["EMD/VMPD", "Tickets in other incentive deals", "Pure domestic tickets unless otherwise specified"]
+        }
+      },
+      "tiers": [
+        {
+          "table_label": "Target-Based Incentives – NFR (AED)",
+          "table_filter": { "key": "NONE", "value": [] },
+          "rows": [
+            { "metric": "Net Flown Revenue", "target": { "min": 0, "max": 51717076.99 }, "payout": { "value": 1.0, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 51717077.0, "max": 56371613.99 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 56371614.0, "max": 60508979.99 }, "payout": { "value": 3.5, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 60508980.0, "max": 63612004.99 }, "payout": { "value": 4.5, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 63612005.0, "max": 66999999.99 }, "payout": { "value": 6.0, "unit": "PERCENT" } },
+            { "metric": "Net Flown Revenue", "target": { "min": 67000000.0, "max": "INF" }, "payout": { "value": 7.0, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": { "basis": "INCREMENTAL", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ","YR"] },
+        "actions": [
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": {
+              "slab_table": "Target-Based Incentives – NFR (AED)",
+              "metric": "Net Flown Revenue",
+              "respect_capping": true,
+              "cap_rule": "last_tier_target_plus_10pct_of_trigger"
+            },
+            "output": {
+              "field": "payout_amount",
+              "unit": "AED",
+              "explanation": "payout_amount = tier_percent * (BASE + YQ + YR)"
+            }
+          }
+        ]
+      },
+      "guards": {
+        "contract_cap": { "enabled": true, "value": "last_tier_target_plus_10pct_of_trigger", "notes": "Payment capped at last tier +10% of trigger; disputes within 90 days of ACM; tax compliance required." }
+      }
+    },
+
+    {
+      "rule_id": "2541b1fa-b408-4066-a951-f13813d00edc_MTP2",
+      "name": "SV NDC Flights – Per-Ticket Incentive (USD)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": true,
+        "NDC Share": true,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+        "trigger": {
+          "type": "SALES",
+          "measure": ["Ticket Count"],
+          "components": [],
+          "formula": "Eligible tickets sold via NDC in term",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "AMOUNT",
+          "computation": "FIXED",
+          "measure": ["Ticket Count"],
+          "components": [],
+          "formula": "payout_amount = per_ticket_amount * eligible_ndc_ticket_count",
+          "expected_percent_range": { "min": "", "max": "", "logic": "" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "Sales Date": "2025-01-01 to 2025-12-31",
+          "Marketing Airline": ["SV"],
+          "NDC": [true]
+        },
+        "OUT": {},
+        "SILENT": {
+          "Cabin": ["ALL"],
+          "RBD": ["ALL"],
+          "POS": ["ALL"],
+          "Ticketing Airline": ["ANY"],
+          "Travel Date": ["ANY"]
+        }
+      },
+      "where_payout": {
+        "IN": { "NDC": [true] },
+        "OUT": {},
+        "SILENT": {}
+      },
+      "tiers": [
+        {
+          "table_label": "NDC Flights – Payout per Ticket (USD)",
+          "table_filter": { "key": "NDC Share (%)", "value": [] },
+          "rows": [
+            { "metric": "NDC Share (%)", "target": { "min": 0, "max": 30 }, "payout": { "value": 0.50, "unit": "AMOUNT" } },
+            { "metric": "NDC Share (%)", "target": { "min": 31, "max": 50 }, "payout": { "value": 0.75, "unit": "AMOUNT" } },
+            { "metric": "NDC Share (%)", "target": { "min": 51, "max": "INF" }, "payout": { "value": 1.00, "unit": "AMOUNT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": { "basis": "FIXED", "measure_name": "Ticket Count", "apply_components": [] },
+        "actions": [
+          {
+            "action": "COMPUTE_PER_TICKET_AMOUNT",
+            "inputs": { "slab_table": "NDC Flights – Payout per Ticket (USD)", "metric": "NDC Share (%)" },
+            "output": { "field": "per_ticket_amount_usd", "unit": "USD", "explanation": "Select per-ticket amount by NDC share band." }
+          },
+          {
+            "action": "COMPUTE_TOTAL_FROM_COUNT",
+            "inputs": { "amount_field": "per_ticket_amount_usd", "count_field": "eligible_ndc_ticket_count" },
+            "output": { "field": "payout_amount", "unit": "USD", "explanation": "payout_amount = per_ticket_amount * eligible_ndc_ticket_count" }
+          }
+        ]
+      }
+    },
+
+    {
+      "rule_id": "2541b1fa-b408-4066-a951-f13813d00edc_MTP3",
+      "name": "SV NDC Ancillary – Percent Payout (USD)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": true,
+        "Ancillary": true,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": false,
+        "Combination_detail": "NONE"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+        "trigger": {
+          "type": "SALES",
+          "measure": ["Ancillary"],
+          "components": [],
+          "formula": "Ancillary sales via NDC in term",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "INCREMENTAL",
+          "measure": ["Ancillary"],
+          "components": [],
+          "formula": "payout_amount = tier_percent * ancillary_amount",
+          "expected_percent_range": { "min": 3.0, "max": 5.0, "logic": "by NDC share band" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "Sales Date": "2025-01-01 to 2025-12-31",
+          "Marketing Airline": ["SV"],
+          "NDC": [true]
+        },
+        "OUT": {},
+        "SILENT": {
+          "Travel Date": ["ANY"],
+          "POS": ["ALL"]
+        }
+      },
+      "where_payout": { "IN": { "NDC": [true] }, "OUT": {}, "SILENT": {} },
+      "tiers": [
+        {
+          "table_label": "NDC Ancillary – % Payout",
+          "table_filter": { "key": "NDC Share (%)", "value": [] },
+          "rows": [
+            { "metric": "NDC Share (%)", "target": { "min": 0, "max": 30 }, "payout": { "value": 3.0, "unit": "PERCENT" } },
+            { "metric": "NDC Share (%)", "target": { "min": 31, "max": 50 }, "payout": { "value": 4.0, "unit": "PERCENT" } },
+            { "metric": "NDC Share (%)", "target": { "min": 51, "max": "INF" }, "payout": { "value": 5.0, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": { "basis": "INCREMENTAL", "measure_name": "Ancillary", "apply_components": [] },
+        "actions": [
+          {
+            "action": "COMPUTE_PAYOUT_PERCENT",
+            "inputs": { "slab_table": "NDC Ancillary – % Payout", "metric": "NDC Share (%)", "respect_capping": false },
+            "output": { "field": "payout_amount", "unit": "USD", "explanation": "payout_amount = tier_percent * ancillary_amount" }
+          }
+        ]
+      }
+    },
+
+    {
+      "rule_id": "2541b1fa-b408-4066-a951-f13813d00edc_MTP4",
+      "name": "SV NDC Bonus – Additional % on Target Payout (USD)",
+      "type": "Multi Tier Metric TABLE",
+      "variant_flags": {
+        "Sales": true,
+        "Coupon Count": false,
+        "Ticket Count": false,
+        "NDC Share": true,
+        "Ancillary": false,
+        "Corporate Code": false,
+        "NFR": false,
+        "Combination": true,
+        "Combination_detail": "Adds on top of NFR payout"
+      },
+      "what_if": {
+        "active_window": { "from": "2025-01-01", "to": "2025-12-31" },
+        "trigger": {
+          "type": "SALES",
+          "measure": ["NDC Share"],
+          "components": [],
+          "formula": "NDC share band achieved in term",
+          "capping": { "enabled": false, "value": 0 }
+        },
+        "payout": {
+          "type": "PERCENTAGE",
+          "computation": "FIXED",
+          "measure": ["Net Flown Revenue"],
+          "components": ["BASE","YQ","YR"],
+          "formula": "bonus_amount = additional_percent * (BASE + YQ + YR)",
+          "expected_percent_range": { "min": 0.0, "max": 1.0, "logic": "Added to target-based payout when applicable" },
+          "capping": { "enabled": false, "value": 0 }
+        }
+      },
+      "where_trigger": {
+        "IN": {
+          "Sales Date": "2025-01-01 to 2025-12-31",
+          "Marketing Airline": ["SV"],
+          "NDC": [true]
+        },
+        "OUT": {},
+        "SILENT": {}
+      },
+      "where_payout": {
+        "IN": { "NDC": [true] },
+        "OUT": {},
+        "SILENT": {}
+      },
+      "tiers": [
+        {
+          "table_label": "NDC Bonus – Additional % to Target Payout",
+          "table_filter": { "key": "NDC Share (%)", "value": [] },
+          "rows": [
+            { "metric": "NDC Share (%)", "target": { "min": 0, "max": 30 }, "payout": { "value": 0.0, "unit": "PERCENT" } },
+            { "metric": "NDC Share (%)", "target": { "min": 31, "max": 50 }, "payout": { "value": 0.5, "unit": "PERCENT" } },
+            { "metric": "NDC Share (%)", "target": { "min": 51, "max": "INF" }, "payout": { "value": 1.0, "unit": "PERCENT" } }
+          ]
+        }
+      ],
+      "then": {
+        "evaluation": { "basis": "FIXED", "measure_name": "Net Flown Revenue", "apply_components": ["BASE","YQ","YR"] },
+        "actions": [
+          {
+            "action": "COMPUTE_BONUS_PERCENT",
+            "inputs": { "slab_table": "NDC Bonus – Additional % to Target Payout", "metric": "NDC Share (%)" },
+            "output": { "field": "additional_percent", "unit": "PERCENT", "explanation": "Select additional % by NDC share band." }
+          },
+          {
+            "action": "APPLY_BONUS_TO_TARGET_PAYOUT",
+            "inputs": { "bonus_percent_field": "additional_percent", "base_metric": "Net Flown Revenue" },
+            "output": { "field": "bonus_amount", "unit": "USD", "explanation": "bonus_amount = additional_percent * (BASE + YQ + YR)" }
+          }
+        ]
+      }
+    }
+  ],
+
+  "metric_eligibility": {
+    "NDC share": { "applies": true, "threshold": 0 },
+    "Year on year growth": { "applies": false, "threshold": "NONE" },
+    "Period over period growth": { "applies": false, "threshold": "NONE" },
+    "Simple slab": { "applies": true }
+  },
+
+  "rule_mgmt": {
+    "rule_creation_date": "2025-09-28",
+    "rule_update_date": "2025-09-28",
+    "rule_active_status": "ACTIVE"
+  }
+}
