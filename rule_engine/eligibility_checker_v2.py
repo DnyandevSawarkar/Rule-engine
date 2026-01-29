@@ -76,6 +76,24 @@ class EligibilityCheckerV2:
         try:
             reasons = []
             
+            # 0. SECTOR AIRLINE CODE CHECK (FIRST AND STRICTEST)
+            # Use ONLY contract.airline_codes from rule metadata vs coupon.cpn_airline_code
+            # Marketing/Ticketing/Operating Airline are for TRIGGER/PAYOUT filters, NOT sector eligibility
+            contract_airline_codes = getattr(contract, 'airline_codes', []) or []
+            
+            if contract_airline_codes:
+                # For sector: compare ONLY cpn_airline_code (sector airline) against contract.airline_codes
+                coupon_sector_airline = (coupon.cpn_airline_code or "").strip().upper()
+                contract_airline_codes_upper = {str(c).strip().upper() for c in contract_airline_codes if c}
+                
+                # If coupon sector airline doesn't match contract airline codes, sector is INELIGIBLE
+                if coupon_sector_airline not in contract_airline_codes_upper:
+                    reason = (
+                        f"Sector airline mismatch: coupon sector airline '{coupon_sector_airline}' "
+                        f"does not match contract airline codes {sorted(contract_airline_codes_upper)}"
+                    )
+                    return False, [reason]  # Fail immediately - no need to check other criteria
+            
             # 1. Contract Window Check
             window_passed, window_reason = self._check_contract_window(coupon, contract)
             if not window_passed:

@@ -1,7 +1,7 @@
 import os
 
-input_path = r"input/EK_TZ_Jan25_Mar25_PLB_rule_T_IN.csv"
-output_path = r"output/EK_TZ_Jan25_Mar25_PLB_rule_T_IN_fixed.csv"
+input_path = r"input/show.csv"
+output_path = r"output/show_fixed.csv"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

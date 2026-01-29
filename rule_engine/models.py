@@ -338,6 +338,10 @@ class ContractData(BaseModel):
     # IATA and geographic constraints
     iata_codes: List[str] = Field(default_factory=list)
     countries: List[str] = Field(default_factory=list)
+
+    # Sector airline constraint (from rule metadata)
+    # This is the primary airline identifier for sector eligibility.
+    airline_codes: List[str] = Field(default_factory=list)
     
     # Addon rule cases for special eligibility overrides
     addon_rule_cases: List[Dict[str, Any]] = Field(default_factory=list)

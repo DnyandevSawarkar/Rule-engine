@@ -389,7 +389,8 @@ class RuleLoader:
                 creation_date=start_date,
                 update_date=end_date,
                 iata_codes=iata_codes,
-                countries=countries
+                countries=countries,
+                airline_codes=[str(code).strip().upper() for code in (trigger_eligibility.get('IN', {}).get('Marketing Airline', []) or []) if code]
             )
             
             return contract
@@ -504,6 +505,56 @@ class RuleLoader:
         except Exception as e:
             logger.error(f"Error parsing rule data from {filename}: {str(e)}")
             return []
+
+    def _normalize_and_enforce_airline_criteria(
+        self,
+        criteria: Dict[str, Any],
+        metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Normalize rule JSON keys to the internal contract schema and
+        enforce airline-level restriction using metadata.airline_codes.
+
+        This fixes cases where:
+        - JSON uses keys like 'marketing_carrier' instead of 'Marketing Airline'
+        - Rules do not explicitly restrict by airline, causing QR/ET/4Z to match EK rules, etc.
+        """
+        if not isinstance(criteria, dict):
+            return criteria or {}
+
+        in_crit = criteria.get("IN", {}) or {}
+        out_crit = criteria.get("OUT", {}) or {}
+
+        # 1) Normalize carrier keys (marketing_carrier -> Marketing Airline, etc.)
+        carrier_key_map = {
+            "marketing_carrier": "Marketing Airline",
+            "operating_carrier": "Operating Airline",
+            "ticketing_carrier": "Ticketing Airline",
+        }
+
+        for src_key, dst_key in carrier_key_map.items():
+            if src_key in in_crit and dst_key not in in_crit:
+                in_crit[dst_key] = in_crit.pop(src_key)
+            if src_key in out_crit and dst_key not in out_crit:
+                out_crit[dst_key] = out_crit.pop(src_key)
+
+        # 2) Enforce airline restriction from metadata.airline_codes if not already present
+        airline_codes = metadata.get("airline_codes") or metadata.get("airline_codes".lower()) or []
+        if airline_codes and isinstance(airline_codes, list):
+            has_airline_filter = any(
+                key in in_crit
+                for key in ("Marketing Airline", "Operating Airline", "Ticketing Airline")
+            )
+            if not has_airline_filter:
+                # Default: restrict by marketing + operating airline
+                in_crit.setdefault("Marketing Airline", airline_codes)
+                in_crit.setdefault("Operating Airline", airline_codes)
+
+        # Rebuild criteria dict
+        criteria["IN"] = in_crit
+        criteria["OUT"] = out_crit
+        criteria.setdefault("SILENT", criteria.get("SILENT", {}))
+        return criteria
     
     def _parse_single_rule(self, rule: Dict[str, Any], metadata: Dict[str, Any], 
                           start_date: date, end_date: date, filename: str, rule_index: int) -> Optional[ContractData]:
@@ -574,8 +625,16 @@ class RuleLoader:
                 payout_percentage = self._calculate_payout_percentage_from_rule(rule)
             
             # Extract eligibility criteria
-            trigger_eligibility = rule.get('where_trigger', {})
-            payout_eligibility = rule.get('where_payout', {})
+            trigger_eligibility = rule.get('where_trigger', {}) or {}
+            payout_eligibility = rule.get('where_payout', {}) or {}
+
+            # Normalize airline-related keys and enforce airline restriction
+            trigger_eligibility = self._normalize_and_enforce_airline_criteria(
+                trigger_eligibility, metadata
+            )
+            payout_eligibility = self._normalize_and_enforce_airline_criteria(
+                payout_eligibility, metadata
+            )
             
             # Extract addon rule cases
             addon_rule_cases = rule.get('addon_rule_cases', [])
@@ -621,6 +680,7 @@ class RuleLoader:
                 update_date=datetime.now().date(),
                 iata_codes=metadata.get('iata_codes', []),
                 countries=metadata.get('countries', []),
+                airline_codes=metadata.get('airline_codes', []),
                 addon_rule_cases=addon_rule_cases
             )
             

@@ -141,23 +141,31 @@ class RuleEngine:
             
             for contract in all_contracts:
                 try:
-                    # STRICT OPTIMIZATION: Check if contract is relevant for this airline
-                    # This prevents processing AFKL rules for QR coupons, etc.
-                    marketing_airlines = contract.trigger_eligibility_criteria.get('IN', {}).get('Marketing Airline', [])
+                    # STRICT OPTIMIZATION: Sector airline check - use ONLY contract.airline_codes from metadata
+                    # Marketing/Ticketing/Operating Airline are for TRIGGER/PAYOUT filters, NOT sector
+                    contract_airline_codes = getattr(contract, 'airline_codes', []) or []
                     
-                    # Also check legacy airline_codes if available
-                    legacy_airlines = getattr(contract, 'airline_codes', [])
-                    if not legacy_airlines and hasattr(contract, 'iata_codes'):
-                         legacy_airlines = contract.iata_codes
+                    # CRITICAL: If contract has no airline_codes defined, skip it (invalid rule)
+                    # Every rule MUST have airline_codes in metadata to define which airline's sectors it applies to
+                    if not contract_airline_codes:
+                        logger.warning(
+                            f"Skipping contract {contract.contract_id}: "
+                            f"No airline_codes defined in rule metadata - cannot determine sector airline eligibility"
+                        )
+                        continue
                     
-                    target_airlines = set(marketing_airlines) | set(legacy_airlines)
+                    # For sector eligibility, compare ONLY cpn_airline_code (sector airline) 
+                    # against contract.airline_codes from rule metadata
+                    coupon_sector_airline = (validated_coupon.cpn_airline_code or "").strip().upper()
+                    contract_airline_codes_upper = {str(c).strip().upper() for c in contract_airline_codes if c}
                     
-                    if target_airlines:
-                        # If airline restrictions exist, enforce them
-                        # But handle case where coupon might be valid for multiple airlines (rare but possible in data)
-                        if validated_coupon.cpn_airline_code not in target_airlines:
-                            logger.trace(f"Skipping contract {contract.contract_id}: Airline {validated_coupon.cpn_airline_code} not in {target_airlines}")
-                            continue
+                    # If coupon sector airline doesn't match contract airline codes, skip entirely
+                    if coupon_sector_airline not in contract_airline_codes_upper:
+                        logger.trace(
+                            f"Skipping contract {contract.contract_id}: "
+                            f"coupon sector airline {coupon_sector_airline} not in contract airline codes {contract_airline_codes_upper}"
+                        )
+                        continue
 
                     contract_count += 1
                     logger.debug(f"Processing contract {contract_count}: {contract.contract_name}")
